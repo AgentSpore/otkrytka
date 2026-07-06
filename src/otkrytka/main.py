@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from .api import boards
+from .api import boards, pages
 from .core.config import get_settings
 from .core.db import init_db
 
@@ -36,6 +36,10 @@ def health():
 
 
 app.include_router(boards.router, prefix="/api/v1")
+
+# Server-rendered social-unfurl pages (/c/{slug}, /og/{slug}.png). Registered
+# BEFORE the SPA static mount below so the '/' catch-all never shadows them.
+app.include_router(pages.router)
 
 # Serve uploaded images read-only from the upload dir (created if missing so the
 # mount never fails on a fresh volume).

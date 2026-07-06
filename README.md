@@ -77,6 +77,25 @@ docker volume create otkrytka-data
   `{organizer_token}`
 - `WS /api/v1/boards/{slug}/ws` — live `changed` signal
 
+The API needs no auth: anyone with a board's `slug` can read it and add a card
+(via `POST .../cards` or the multipart `POST .../upload`); only the secret
+`organizer_token` gates pin / lock / delete. Live updates arrive over the
+`WS .../ws` channel.
+
+### Share / social-unfurl (server-rendered, outside `/api/v1`)
+
+- `GET /c/{slug}` — the guest share link. Serves the SPA with the Open Graph /
+  Twitter tags rewritten per-board (occasion title + a localized line naming the
+  recipient) so a shared link previews the actual card in Telegram / WhatsApp /
+  Slack. An unknown or deleted slug still returns 200 with the generic landing
+  OG. Locale is `?lang=ru|en`, else `Accept-Language`, default RU. User input is
+  HTML-escaped before injection. This is the link the copy/QR/TG/WA/VK buttons
+  produce; the organizer link stays a `#/{slug}/k/{token}` hash so the token is
+  never in a server path or access log.
+- `GET /og/{slug}.png` — a 1200x630 branded per-board preview image (warm
+  identity, recipient + occasion), rendered with Pillow. Falls back to the
+  static `og-image.png` when no TrueType font is installed.
+
 ## Not in this version (v2)
 
 - **Video contributions** — storage-heavy; deferred.

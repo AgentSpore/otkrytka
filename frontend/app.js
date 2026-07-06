@@ -634,17 +634,31 @@ function resizeImage(file, maxDim = 1600) {
 }
 
 // ─── Routing ─────────────────────────────────────────────────────────────────
-/** Parse `#/slug`, `#/slug/k/<token>`, `#/slug/deliver`. */
+/** Parse the route. The hash forms — `#/slug`, `#/slug/k/<token>`,
+ *  `#/slug/deliver` — take precedence (organizer + deliver deep links keep
+ *  working). Otherwise the real guest path `/c/{slug}` renders the board so a
+ *  shared, crawler-visible link opens the card directly. */
 function parseRoute() {
   const raw = location.hash.replace(/^#\/?/, '').trim();
-  if (!raw) return { view: 'landing' };
-  const parts = raw.split('/');
-  const slug = parts[0].toLowerCase();
-  if (parts[1] === 'k' && parts[2]) return { view: 'manage', slug, token: parts[2] };
-  if (parts[1] === 'deliver') return { view: 'deliver', slug };
-  return { view: 'board', slug };
+  if (raw) {
+    const parts = raw.split('/');
+    const slug = parts[0].toLowerCase();
+    if (parts[1] === 'k' && parts[2]) return { view: 'manage', slug, token: parts[2] };
+    if (parts[1] === 'deliver') return { view: 'deliver', slug };
+    return { view: 'board', slug };
+  }
+  const m = location.pathname.match(/^\/c\/([a-z0-9]+)\/?$/i);
+  if (m) return { view: 'board', slug: m[1].toLowerCase() };
+  return { view: 'landing' };
 }
 function goTo(hash) { location.hash = hash; }
+/** Navigate to the landing at the real root, clearing any `/c/{slug}` path. */
+function goHome() {
+  wsClose();
+  state.board = null;
+  history.pushState(null, '', '/');
+  render();
+}
 
 async function render() {
   document.documentElement.lang = state.lang;
@@ -655,7 +669,7 @@ async function render() {
   if (route.view === 'manage') {
     // Adopt the organizer token for this browser, then drop it from the URL.
     setOrgToken(route.slug, route.token);
-    location.replace(`${location.pathname}#/${route.slug}`);
+    location.replace(`/#/${route.slug}`);
     return;
   }
   if (route.view === 'landing') {
@@ -677,7 +691,7 @@ function renderLanding(root) {
   let cover = COVERS[0];
   root.innerHTML = `
     <nav style="position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:14px 5vw;background:oklch(98% 0.018 75 / 0.92);backdrop-filter:blur(12px);border-bottom:2px solid var(--sand-deep)">
-      <a class="font-display" style="display:inline-flex;align-items:center;gap:8px;font-size:1.3rem;color:var(--ink);text-decoration:none;font-weight:900" href="#">
+      <a class="font-display" style="display:inline-flex;align-items:center;gap:8px;font-size:1.3rem;color:var(--ink);text-decoration:none;font-weight:900" href="/" data-home="1">
         <span>💌</span><span>${esc(t('brand'))}</span>
       </a>
       ${mkLangSwitcher()}
@@ -794,7 +808,9 @@ function renderLanding(root) {
 
 // ─── Created modal (organizer link shown once) ───────────────────────────────
 function showCreatedModal(slug, token) {
-  const shareUrl = `${location.origin}/#/${slug}`;
+  // Guest link = real path (unfurls); organizer link stays a hash so the secret
+  // token never lands in a server request path, access log or crawler fetch.
+  const shareUrl = `${location.origin}/c/${slug}`;
   const manageUrl = `${location.origin}/#/${slug}/k/${token}`;
   const { overlay, card } = openModal(`
     <h2 class="modal-title">🎉 ${esc(t('created_title'))}</h2>
@@ -835,7 +851,7 @@ async function renderBoard(root, slug) {
         <p class="font-display" style="font-size:1.2rem;font-weight:800;color:var(--ink)">${esc(t('err_not_found'))}</p>
         <button id="go-home" class="cta-hero" style="margin-top:20px">💌 ${esc(t('home_link'))}</button>
       </div>`;
-    root.querySelector('#go-home').addEventListener('click', () => goTo(''));
+    root.querySelector('#go-home').addEventListener('click', () => goHome());
     return;
   }
   state.seen = new Set(state.board.cards.map(c => c.id)); // no entrance anim on first paint
@@ -880,7 +896,7 @@ function paintBoard(root, slug, opts = {}) {
 
   root.innerHTML = `
     <nav style="position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:12px 5vw;background:oklch(98% 0.018 75 / 0.92);backdrop-filter:blur(12px);border-bottom:2px solid var(--sand-deep)">
-      <a class="font-display" style="display:inline-flex;align-items:center;gap:8px;font-size:0.95rem;color:var(--muted);text-decoration:none;font-weight:800" href="#">← ${esc(t('home_link'))}</a>
+      <a class="font-display" style="display:inline-flex;align-items:center;gap:8px;font-size:0.95rem;color:var(--muted);text-decoration:none;font-weight:800" href="/" data-home="1">← ${esc(t('home_link'))}</a>
       <div style="display:flex;align-items:center;gap:10px">
         <span id="live-pip" class="live-pip"></span>
         ${mkLangSwitcher()}
@@ -938,7 +954,9 @@ function paintBoard(root, slug, opts = {}) {
 }
 
 function shareUrls(slug, recipient) {
-  const url = `${location.origin}/#/${slug}`;
+  // Guest link is the real path /c/{slug} so crawlers (Telegram/WhatsApp/Slack)
+  // can fetch it and unfurl the per-board card preview.
+  const url = `${location.origin}/c/${slug}`;
   const msg = recipient
     ? `${t('add_wish_btn')} · ${recipient}`
     : t('add_wish_btn');
@@ -1022,7 +1040,7 @@ function wireBoard(root, slug) {
       try {
         await api.del(`/api/v1/boards/${boardId}`, { organizer_token: token });
         wsClose();
-        goTo('');
+        goHome();
         showUndoToast(t('board_deleted'), t('undo_btn'), async () => {
           try {
             await api.post(`/api/v1/boards/${boardId}/restore`, { organizer_token: token });
@@ -1173,7 +1191,7 @@ async function renderDeliver(root, slug) {
         <p class="font-display" style="font-size:1.2rem;font-weight:800;color:var(--ink)">${esc(t('err_not_found'))}</p>
         <button id="go-home" class="cta-hero" style="margin-top:20px">💌 ${esc(t('home_link'))}</button>
       </div>`;
-    root.querySelector('#go-home').addEventListener('click', () => goTo(''));
+    root.querySelector('#go-home').addEventListener('click', () => goHome());
     return;
   }
 
@@ -1200,8 +1218,10 @@ async function renderDeliver(root, slug) {
   fireConfetti();
 }
 
-// ─── Global lang toggle (delegated) ──────────────────────────────────────────
+// ─── Global delegated clicks (lang toggle + home) ────────────────────────────
 document.getElementById('app').addEventListener('click', e => {
+  const home = e.target.closest('[data-home]');
+  if (home) { e.preventDefault(); goHome(); return; }
   const btn = e.target.closest('[data-lang]');
   if (!btn) return;
   state.lang = btn.dataset.lang;
@@ -1213,11 +1233,15 @@ document.getElementById('app').addEventListener('click', e => {
 function init() {
   document.documentElement.lang = state.lang;
   render();
-  window.addEventListener('hashchange', () => {
+  const rerender = () => {
     wsClose();
     state.board = null;
     render();
-  });
+  };
+  // hashchange covers the hash routes; popstate covers real-path /c/{slug}
+  // navigation (back/forward after goHome pushes '/').
+  window.addEventListener('hashchange', rerender);
+  window.addEventListener('popstate', rerender);
 }
 
 init();
