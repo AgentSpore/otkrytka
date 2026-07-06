@@ -60,6 +60,12 @@ const STR = {
     copy_done: "Copied!",
     qr_btn: "QR",
     qr_title: "Scan to open the card",
+    embed_btn: "Embed",
+    embed_open: "Open the card",
+    embed_modal_title: "Embed this card",
+    embed_hint: "Paste this into a blog, a tribute page or Notion. It stays read only and updates live.",
+    embed_copy: "Copy embed code",
+    embed_copied: "Embed code copied",
     you_are: "You:",
     set_name: "Set your name",
     change_name: "Change",
@@ -178,6 +184,12 @@ const STR = {
     copy_done: "Скопировано!",
     qr_btn: "QR",
     qr_title: "Отсканируйте, чтобы открыть",
+    embed_btn: "Встроить",
+    embed_open: "Открыть открытку",
+    embed_modal_title: "Встроить эту открытку",
+    embed_hint: "Вставьте этот код в блог, страницу памяти или Notion. Открытка остаётся только для чтения и обновляется вживую.",
+    embed_copy: "Копировать код",
+    embed_copied: "Код скопирован",
     you_are: "Вы:",
     set_name: "Укажите имя",
     change_name: "Изменить",
@@ -252,6 +264,7 @@ const state = {
   })(),
   slug: '',
   board: null,
+  embed: false, // read-only embedded card (/embed/{slug}); no organizer access
   seen: new Set(), // card ids already on screen (so only fresh ones animate)
 };
 
@@ -286,7 +299,8 @@ async function applyObserverRefresh(slug) {
     const board = await api.get(`/api/v1/boards/${slug}`);
     state.board = board;
     const scrollY = window.scrollY;
-    paintBoard(document.getElementById('app'), slug, { animateNew: true });
+    const paint = state.embed ? paintEmbed : paintBoard;
+    paint(document.getElementById('app'), slug, { animateNew: true });
     window.scrollTo({ top: scrollY, behavior: 'instant' });
   } catch (_) {
     // WS refresh failure is non-fatal.
@@ -647,6 +661,8 @@ function parseRoute() {
     if (parts[1] === 'deliver') return { view: 'deliver', slug };
     return { view: 'board', slug };
   }
+  const em = location.pathname.match(/^\/embed\/([a-z0-9]+)\/?$/i);
+  if (em) return { view: 'embed', slug: em[1].toLowerCase() };
   const m = location.pathname.match(/^\/c\/([a-z0-9]+)\/?$/i);
   if (m) return { view: 'board', slug: m[1].toLowerCase() };
   return { view: 'landing' };
@@ -672,12 +688,16 @@ async function render() {
     location.replace(`/#/${route.slug}`);
     return;
   }
+  state.embed = route.view === 'embed';
   if (route.view === 'landing') {
     state.slug = '';
     renderLanding(root);
   } else if (route.view === 'deliver') {
     state.slug = route.slug;
     await renderDeliver(root, route.slug);
+  } else if (route.view === 'embed') {
+    state.slug = route.slug;
+    await renderEmbed(root, route.slug);
   } else {
     state.slug = route.slug;
     await renderBoard(root, route.slug);
@@ -919,6 +939,7 @@ function paintBoard(root, slug, opts = {}) {
         <a class="share-btn" data-share="vk" target="_blank" rel="noopener">🅥 ${esc(t('share_vk'))}</a>
         <button class="share-btn" data-copy-share="1">🔗 ${esc(t('copy_link'))}</button>
         <button class="share-btn" data-qr="1">▦ ${esc(t('qr_btn'))}</button>
+        <button class="share-btn" data-embed="1">⧉ ${esc(t('embed_btn'))}</button>
       </div>
 
       <div style="display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap">
@@ -990,6 +1011,9 @@ function wireBoard(root, slug) {
 
   const qrBtn = root.querySelector('[data-qr]');
   if (qrBtn) qrBtn.addEventListener('click', () => showQrModal(su.url));
+
+  const embedBtn = root.querySelector('[data-embed]');
+  if (embedBtn) embedBtn.addEventListener('click', () => showEmbedModal(slug));
 
   root.querySelectorAll('[data-set-name]').forEach(btn => {
     btn.addEventListener('click', async () => {
@@ -1079,6 +1103,77 @@ function showQrModal(url) {
   card.querySelector('[data-copy]').addEventListener('click', async () => {
     try { await navigator.clipboard.writeText(url); showToast(t('copy_done'), 1400); } catch (_) {}
   });
+}
+
+// ─── Embed modal (copy the iframe snippet) ───────────────────────────────────
+function showEmbedModal(slug) {
+  // Build the absolute src from the server-injected canonical origin when
+  // present (so the snippet points at the real host even when the SPA is opened
+  // on a bare hash route), else the current origin. The board title becomes the
+  // iframe title="..." attribute; esc() keeps it a safe, single-escaped value.
+  const canonical = window.__CANONICAL__ || location.origin;
+  const title = state.board ? state.board.title : '';
+  const src = `${canonical}/embed/${slug}`;
+  const snippet =
+    `<iframe src="${src}" width="100%" height="560" ` +
+    `style="border:0;border-radius:16px" loading="lazy" title="${esc(title)}"></iframe>`;
+  const { card } = openModal(`
+    <h2 class="modal-title">⧉ ${esc(t('embed_modal_title'))}</h2>
+    <p style="color:var(--muted);font-size:0.88rem">${esc(t('embed_hint'))}</p>
+    <textarea class="kg-textarea" readonly data-f="code" style="margin-top:8px;min-height:120px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:0.78rem">${esc(snippet)}</textarea>
+    <button class="cta-hero" style="width:100%" data-f="copy">🔗 ${esc(t('embed_copy'))}</button>`);
+  const ta = card.querySelector('[data-f="code"]');
+  card.querySelector('[data-f="copy"]').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(snippet); showToast(t('embed_copied'), 1600); }
+    catch (_) { ta.focus(); ta.select(); }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SCREEN — Embedded card (read-only, no organizer access, live)
+// ═══════════════════════════════════════════════════════════════════════════
+async function renderEmbed(root, slug) {
+  root.innerHTML = `<div style="max-width:720px;margin:48px auto;text-align:center;color:var(--muted)" class="font-display">${esc(t('loading'))}</div>`;
+  try {
+    state.board = await api.get(`/api/v1/boards/${slug}`);
+  } catch (e) {
+    root.innerHTML = `<div style="max-width:520px;margin:60px auto;text-align:center;padding:0 6vw"><p class="font-display" style="font-size:1.1rem;font-weight:800;color:var(--ink)">${esc(t('err_not_found'))}</p></div>`;
+    return;
+  }
+  state.seen = new Set(state.board.cards.map(c => c.id)); // no entrance anim on first paint
+  paintEmbed(root, slug, { animateNew: false });
+  wsConnect(slug);
+}
+
+function paintEmbed(root, slug, opts = {}) {
+  const animateNew = !!opts.animateNew;
+  const b = state.board;
+  const canonical = window.__CANONICAL__ || location.origin;
+  const openUrl = `${canonical}/c/${slug}`;
+
+  // Read-only: wishHtml(..., isOrganizer=false, ...) emits no pin/delete tools.
+  const cardsHtml = b.cards.length === 0
+    ? `<div class="cozy-card" style="padding:24px;text-align:center"><p style="color:var(--muted)">${esc(t('empty_hint'))}</p></div>`
+    : `<div class="masonry">${b.cards.map(c => wishHtml(c, false, animateNew && !state.seen.has(c.id))).join('')}</div>`;
+
+  root.innerHTML = `
+    <main class="embed-wrap">
+      <div class="embed-head">
+        <span class="cover-badge">${esc(b.cover || '💌')}</span>
+        <div style="flex:1;min-width:0">
+          <h1 class="font-display title-clamp" style="font-weight:900;font-size:clamp(1.2rem,4vw,1.7rem);color:var(--ink);letter-spacing:-0.01em">${esc(b.title)}</h1>
+          ${b.recipient ? `<p style="color:var(--muted);margin-top:2px;font-weight:600;font-size:0.9rem">${esc(t('for_word'))} <span style="color:var(--ink);font-weight:800">${esc(b.recipient)}</span></p>` : ''}
+        </div>
+        <span id="live-pip" class="live-pip"></span>
+      </div>
+      <div style="margin-top:16px">${cardsHtml}</div>
+      <div class="embed-foot">
+        <a href="${esc(openUrl)}" target="_blank" rel="noopener" class="font-display" style="color:var(--coral);font-weight:800;font-size:0.85rem;text-decoration:none">💌 ${esc(t('embed_open'))} ↗</a>
+      </div>
+    </main>`;
+
+  state.seen = new Set(b.cards.map(c => c.id));
+  setLivePip(ws.socket && ws.socket.readyState === 1 ? 'connected' : 'reconnecting');
 }
 
 // ─── Add-wish modal ──────────────────────────────────────────────────────────

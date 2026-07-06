@@ -95,6 +95,20 @@ The API needs no auth: anyone with a board's `slug` can read it and add a card
 - `GET /og/{slug}.png` — a 1200x630 branded per-board preview image (warm
   identity, recipient + occasion), rendered with Pillow. Falls back to the
   static `og-image.png` when no TrueType font is installed.
+- `GET /embed/{slug}` — a read-only, framable version of the card for embedding
+  in a blog, tribute page or Notion. Serves the SPA with a `window.__EMBED__`
+  signal so it hides add-wish, all organizer controls, the share row and the
+  nav, keeps the live WebSocket updates, and shows an "Open the card" link to
+  `/c/{slug}`. Never carries the organizer token. No `X-Frame-Options` /
+  CSP `frame-ancestors` is set, so framing is allowed. The share row's
+  "Embed" button copies the `<iframe>` snippet for this URL.
+- `GET /oembed?url=&format=json&maxwidth=&maxheight=` — oEmbed 1.0 `rich`
+  response for a canonical `/c/{slug}` or `/embed/{slug}` URL, returning the
+  `<iframe>` embed HTML. Only `format=json` (else 501); foreign hosts / non-card
+  paths are rejected (404) and unparseable URLs are 400. The board title is
+  HTML-escaped into the iframe and JSON-encoded into the `title` field. A
+  `<link rel="alternate" type="application/json+oembed">` discovery tag is added
+  to the `/c/{slug}` head.
 
 ## Not in this version (v2)
 

@@ -18,7 +18,9 @@ un-escaped ``"><script>`` would otherwise break out of the tag.
 
 import html
 import io
+import json
 from pathlib import Path
+from urllib.parse import quote, urlparse
 
 import aiosqlite
 from PIL import Image, ImageDraw, ImageFont
@@ -29,6 +31,12 @@ from ..core.config import get_settings
 # region without templating the whole document.
 _OG_START = "<!--OG-->"
 _OG_END = "<!--/OG-->"
+
+# A second marked region (empty by default) where the server injects a tiny
+# runtime signal script — the canonical origin and, on /embed/{slug}, the
+# read-only EMBED flag. Reuses the same marker-swap mechanism as the OG block.
+_SIG_START = "<!--SIG-->"
+_SIG_END = "<!--/SIG-->"
 
 _OG_W, _OG_H = 1200, 630
 
@@ -113,6 +121,10 @@ def _og_block(board: aiosqlite.Row, lang: str, base_url: str) -> str:
     url = f"{base_url}/c/{board['slug']}"
     image = f"{base_url}/og/{board['slug']}.png"
     desc = _description(recipient, lang)
+    # oEmbed discovery: a consumer (Notion, WordPress, Slack) that fetches the
+    # card page can find the JSON endpoint from this <link>. The url= param is
+    # url-encoded and the human-readable title= attribute is HTML-escaped.
+    oembed_href = f"{base_url}/oembed?url={quote(url, safe='')}&format=json"
 
     def e(value: str) -> str:  # HTML-escapes & < > " ' (quote=True)
         return html.escape(value, quote=True)
@@ -129,16 +141,33 @@ def _og_block(board: aiosqlite.Row, lang: str, base_url: str) -> str:
         f'  <meta name="twitter:card" content="summary_large_image">\n'
         f'  <meta name="twitter:title" content="{e(title)}">\n'
         f'  <meta name="twitter:description" content="{e(desc)}">\n'
-        f'  <meta name="twitter:image" content="{e(image)}">'
+        f'  <meta name="twitter:image" content="{e(image)}">\n'
+        f'  <link rel="alternate" type="application/json+oembed" '
+        f'href="{e(oembed_href)}" title="{e(title)}">'
     )
 
 
-def _replace_og(template: str, block: str) -> str:
-    start = template.find(_OG_START)
-    end = template.find(_OG_END)
+def _replace_marked(template: str, start_m: str, end_m: str, block: str) -> str:
+    """Swap the region between ``start_m`` and ``end_m`` for ``block``.
+
+    Markers absent / malformed -> return the template unchanged rather than
+    mangle the document. Shared by the OG-tag swap and the runtime-signal swap.
+    """
+    start = template.find(start_m)
+    end = template.find(end_m)
     if start == -1 or end == -1 or end < start:
-        return template  # markers absent -> serve unchanged rather than mangle
-    return template[:start] + block + template[end + len(_OG_END):]
+        return template
+    return template[:start] + block + template[end + len(end_m):]
+
+
+def _sig_block(base_url: str, embed: bool) -> str:
+    """A tiny inline script exposing the canonical origin (so the SPA builds
+    absolute embed URLs from the server-trusted base) and, for /embed/{slug},
+    the read-only EMBED flag. ``json.dumps`` keeps the base string JS-safe."""
+    js = f"window.__CANONICAL__={json.dumps(base_url)};"
+    if embed:
+        js += "window.__EMBED__=true;"
+    return f"<script>{js}</script>"
 
 
 async def render_card_page(
@@ -146,10 +175,122 @@ async def render_card_page(
 ) -> str:
     """index.html with per-board OG tags; unchanged (generic OG) if no board."""
     template = _index_html()
+    template = _replace_marked(
+        template, _SIG_START, _SIG_END, _sig_block(base_url, embed=False)
+    )
     board = await _board_for_og(db, slug)
     if board is None:
         return template
-    return _replace_og(template, _og_block(board, lang, base_url))
+    return _replace_marked(
+        template, _OG_START, _OG_END, _og_block(board, lang, base_url)
+    )
+
+
+async def render_embed_page(
+    db: aiosqlite.Connection, slug: str, lang: str, base_url: str
+) -> str:
+    """index.html signalling read-only EMBED mode to the SPA.
+
+    Never carries the organizer token (embed has no manage access); per-board OG
+    tags are still swapped in so a shared embed URL previews the card too.
+    """
+    template = _index_html()
+    template = _replace_marked(
+        template, _SIG_START, _SIG_END, _sig_block(base_url, embed=True)
+    )
+    board = await _board_for_og(db, slug)
+    if board is None:
+        return template
+    return _replace_marked(
+        template, _OG_START, _OG_END, _og_block(board, lang, base_url)
+    )
+
+
+# --- oEmbed (slug extraction + JSON payload) -----------------------------------
+
+# Distinguish the two rejection reasons the /oembed route maps to HTTP codes.
+class OembedMalformedError(ValueError):
+    """The url= param is not a parseable absolute http(s) URL -> 400."""
+
+
+class OembedForeignError(ValueError):
+    """The url= host is not ours, or the path is not a card/embed URL -> 404."""
+
+
+class OembedNotConfiguredError(RuntimeError):
+    """canonical_base_url is unset, so the foreign-host check has no trusted
+    reference -> fail closed (500) rather than trust the spoofable
+    request-derived host."""
+
+
+def oembed_slug(url: str, base_url: str) -> str:
+    """Extract the board slug from a canonical ``/c/{slug}`` or ``/embed/{slug}``
+    URL. Rejects a malformed URL (``OembedMalformedError``) and any foreign host
+    or non-card path (``OembedForeignError``) so oEmbed never proxies a third
+    party."""
+    try:
+        parsed = urlparse(url)
+    except ValueError as exc:
+        raise OembedMalformedError(str(exc)) from exc
+    if parsed.scheme not in ("http", "https") or not parsed.netloc:
+        raise OembedMalformedError("not an absolute http(s) url")
+    if parsed.netloc.lower() != urlparse(base_url).netloc.lower():
+        raise OembedForeignError("foreign host")
+    parts = [p for p in parsed.path.split("/") if p]
+    if len(parts) == 2 and parts[0] in ("c", "embed") and parts[1].isalnum():
+        return parts[1].lower()
+    raise OembedForeignError("not a card url")
+
+
+_OEMBED_W, _OEMBED_H = 480, 560
+
+
+async def render_oembed(
+    db: aiosqlite.Connection,
+    url: str,
+    maxwidth: int | None,
+    maxheight: int | None,
+) -> dict:
+    """Resolve a card/embed URL to its oEmbed payload. The host-check compares
+    against the configured ``canonical_base_url`` ONLY (never the spoofable
+    request-derived host); unset -> ``OembedNotConfiguredError`` (fail closed).
+    Raises ``OembedMalformedError`` (-> 400) / ``OembedForeignError`` (-> 404).
+    ``maxwidth``/``maxheight`` clamp the iframe size."""
+    canonical = get_settings().canonical_base_url.rstrip("/")
+    if not canonical:
+        raise OembedNotConfiguredError("canonical_base_url is not configured")
+    slug = oembed_slug(url, canonical)  # may raise malformed/foreign
+    width = min(_OEMBED_W, maxwidth) if maxwidth and maxwidth > 0 else _OEMBED_W
+    height = min(_OEMBED_H, maxheight) if maxheight and maxheight > 0 else _OEMBED_H
+    board = await _board_for_og(db, slug)
+    return _oembed_payload(board, slug, canonical, width, height)
+
+
+def _oembed_payload(
+    board: aiosqlite.Row | None, slug: str, base_url: str, width: int, height: int
+) -> dict:
+    """Build the oEmbed 1.0 ``rich`` payload. The board title is HTML-escaped for
+    the iframe ``title="..."`` attribute; the JSON ``title`` field is escaped by
+    the JSON encoder. The slug is validated ``[a-z0-9]`` upstream, so the src is
+    safe; it is still confined to our own /embed path."""
+    title = board["title"] if board else _GENERIC_TITLE["ru"]
+    src = f"{base_url}/embed/{slug}"
+    iframe = (
+        f'<iframe src="{html.escape(src, quote=True)}" '
+        f'width="{width}" height="{height}" '
+        f'style="border:0;border-radius:16px" loading="lazy" '
+        f'title="{html.escape(title, quote=True)}"></iframe>'
+    )
+    return {
+        "version": "1.0",
+        "type": "rich",
+        "provider_name": _SITE_NAME["en"],
+        "provider_url": base_url,
+        "title": title,
+        "width": width,
+        "height": height,
+        "html": iframe,
+    }
 
 
 # --- OG image (Pillow) ---------------------------------------------------------

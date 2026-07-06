@@ -181,6 +181,11 @@ body {
 }
 .cover-badge.big { width: 96px; height: 96px; font-size: 3rem; border-radius: var(--radius-xl); }
 
+/* ── Embedded read-only card (/embed/{slug}) ── */
+.embed-wrap { max-width: 1000px; margin: 0 auto; padding: 18px 18px 20px; }
+.embed-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.embed-foot { margin-top: 18px; text-align: center; }
+
 /* ── Masonry board ── */
 .masonry { column-gap: 16px; column-count: 1; }
 @media (min-width: 560px) { .masonry { column-count: 2; } }
