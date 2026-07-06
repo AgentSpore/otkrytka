@@ -485,7 +485,8 @@ function fireConfetti() {
   if (typeof confetti === 'undefined') return;
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const c = confetti.create(getConfettiEl(), { resize: true, useWorker: false });
-  const warm = ['#E8705A', '#F4A56A', '#F5C897', '#C98BB0', '#7DC9C3'];
+  // Festive gift palette — rose, warm gold, lilac, mint
+  const warm = ['#C93B57', '#E39A3D', '#F0C85A', '#C79AD6', '#7FCBB0'];
   c({ particleCount: 140, spread: 90, origin: { y: 0.5 }, colors: warm });
   setTimeout(() => c({ particleCount: 70, spread: 55, origin: { y: 0.6 }, startVelocity: 24, colors: warm }), 320);
 }
@@ -528,8 +529,8 @@ function showNameModal(slug, current) {
       <h2 class="modal-title">${esc(t('name_modal_title'))}</h2>
       <input class="kg-input" type="text" placeholder="${esc(t('name_ph'))}" maxlength="48" value="${esc(current || '')}" autocomplete="nickname">
       <div class="flex gap-2">
-        <button class="flex-1 py-3 rounded-2xl border-2 font-display btn-press-sm" style="border-color:var(--sand-deep);color:var(--muted);font-weight:800" data-action="cancel">${esc(t('cancel_btn'))}</button>
-        <button class="flex-1 py-3 rounded-2xl font-display btn-press" style="background:var(--coral);color:var(--surface);font-weight:800" data-action="save">${esc(t('name_save'))}</button>
+        <button class="flex-1 py-3 rounded-2xl border-2 font-body btn-press-sm" style="border-color:var(--sand-deep);color:var(--muted);font-weight:700" data-action="cancel">${esc(t('cancel_btn'))}</button>
+        <button class="flex-1 py-3 rounded-2xl font-body btn-press" style="background:var(--coral-dark);color:var(--surface);font-weight:700" data-action="save">${esc(t('name_save'))}</button>
       </div>`);
     const input = card.querySelector('input');
     setTimeout(() => input.focus(), 30);
@@ -639,7 +640,7 @@ async function render() {
 function renderLanding(root) {
   let cover = COVERS[0];
   root.innerHTML = `
-    <nav style="position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:14px 5vw;background:oklch(97% 0.018 60 / 0.92);backdrop-filter:blur(12px);border-bottom:2px solid var(--sand-deep)">
+    <nav style="position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:14px 5vw;background:oklch(98% 0.018 75 / 0.92);backdrop-filter:blur(12px);border-bottom:2px solid var(--sand-deep)">
       <a class="font-display" style="display:inline-flex;align-items:center;gap:8px;font-size:1.3rem;color:var(--ink);text-decoration:none;font-weight:900" href="#">
         <span>💌</span><span>${esc(t('brand'))}</span>
       </a>
@@ -815,7 +816,7 @@ function paintBoard(root, slug, opts = {}) {
     : `<div class="masonry">${b.cards.map(c => wishHtml(c, isOrganizer, animateNew && !state.seen.has(c.id))).join('')}</div>`;
 
   root.innerHTML = `
-    <nav style="position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:12px 5vw;background:oklch(97% 0.018 60 / 0.92);backdrop-filter:blur(12px);border-bottom:2px solid var(--sand-deep)">
+    <nav style="position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:12px 5vw;background:oklch(98% 0.018 75 / 0.92);backdrop-filter:blur(12px);border-bottom:2px solid var(--sand-deep)">
       <a class="font-display" style="display:inline-flex;align-items:center;gap:8px;font-size:0.95rem;color:var(--muted);text-decoration:none;font-weight:800" href="#">← ${esc(t('home_link'))}</a>
       <div style="display:flex;align-items:center;gap:10px">
         <span id="live-pip" class="live-pip"></span>
@@ -989,7 +990,7 @@ function showQrModal(url) {
   const box = card.querySelector('#qr-box');
   if (typeof QRCode !== 'undefined') {
     try {
-      new QRCode(box, { text: url, width: 220, height: 220, colorDark: '#3a2f28', colorLight: '#fdfaf3' });
+      new QRCode(box, { text: url, width: 220, height: 220, colorDark: '#33202b', colorLight: '#fdf6ee' });
     } catch (_) { box.textContent = url; }
   } else {
     box.innerHTML = `<span style="color:var(--muted);word-break:break-all">${esc(url)}</span>`;
@@ -1025,8 +1026,8 @@ function showAddWishModal(root, slug) {
       <p style="font-size:0.78rem;color:var(--muted);margin-top:4px">${esc(t('gif_hint'))}</p>
     </div>
     <div class="flex gap-2">
-      <button class="flex-1 py-3 rounded-2xl border-2 font-display btn-press-sm" style="border-color:var(--sand-deep);color:var(--muted);font-weight:800" data-f="cancel">${esc(t('cancel_btn'))}</button>
-      <button class="flex-1 py-3 rounded-2xl font-display btn-press" style="background:var(--coral);color:var(--surface);font-weight:800" data-f="send">${esc(t('send_wish'))}</button>
+      <button class="flex-1 py-3 rounded-2xl border-2 font-body btn-press-sm" style="border-color:var(--sand-deep);color:var(--muted);font-weight:700" data-f="cancel">${esc(t('cancel_btn'))}</button>
+      <button class="flex-1 py-3 rounded-2xl font-body btn-press" style="background:var(--coral-dark);color:var(--surface);font-weight:700" data-f="send">${esc(t('send_wish'))}</button>
     </div>`);
 
   const nameInput = card.querySelector('[data-f="name"]');
