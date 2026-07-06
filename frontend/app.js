@@ -16,7 +16,7 @@ const STR = {
     create_btn: "Start a card",
     or_label: "or",
     join_label: "Have a link already?",
-    join_ph: "Enter the card code",
+    join_ph: "Card code",
     join_go: "Open",
     preview_label: "A quick look",
     preview_hint: "Everyone drops in a wish. The nicest ones get pinned to the top.",
@@ -31,6 +31,7 @@ const STR = {
     preview_n3: "The team",
 
     // Header / board
+    doc_title: "Otkrytka · Warm words, together",
     brand: "Otkrytka",
     home_link: "Home",
     share_label: "Share:",
@@ -115,7 +116,7 @@ const STR = {
     create_btn: "Создать открытку",
     or_label: "или",
     join_label: "Уже есть ссылка?",
-    join_ph: "Введите код открытки",
+    join_ph: "Код открытки",
     join_go: "Открыть",
     preview_label: "Как это выглядит",
     preview_hint: "Каждый добавляет пожелание. Самые тёплые закрепляются наверху.",
@@ -130,6 +131,7 @@ const STR = {
     preview_n3: "Команда",
 
     // Header / board
+    doc_title: "Открытка · Тёплые слова вскладчину",
     brand: "Открытка",
     home_link: "На главную",
     share_label: "Поделиться:",
@@ -609,6 +611,7 @@ function goTo(hash) { location.hash = hash; }
 
 async function render() {
   document.documentElement.lang = state.lang;
+  document.title = t('doc_title'); // keep the browser tab title in sync with the UI language
   const route = parseRoute();
   const root = document.getElementById('app');
 
