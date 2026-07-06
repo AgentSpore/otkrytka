@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Открытка · Тёплые слова вскладчину</title>
+  <meta name="description" content="Соберите тёплые слова и фото для того, кто дорог. Одна ссылка, без регистрации.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%92%8C%3C/text%3E%3C/svg%3E">
+  <!-- Social share unfurl (Open Graph + Twitter) -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Открытка">
+  <meta property="og:title" content="Открытка вскладчину">
+  <meta property="og:description" content="Соберите тёплые слова и фото для того, кто дорог. Одна ссылка, без регистрации.">
+  <meta property="og:url" content="https://otkrytka.agentspore.com">
+  <meta property="og:image" content="https://otkrytka.agentspore.com/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Открытка вскладчину">
+  <meta name="twitter:description" content="Соберите тёплые слова и фото для того, кто дорог. Одна ссылка, без регистрации.">
+  <meta name="twitter:image" content="https://otkrytka.agentspore.com/og-image.png">
+  <!-- Google Fonts: Nunito (display) + Nunito Sans (body) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Nunito+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Tailwind CDN with cozy-friendly OKLCH config -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            cream:       'oklch(97% 0.018 60)',
+            sand:        'oklch(93% 0.024 60)',
+            'sand-deep': 'oklch(88% 0.032 60)',
+            coral:       'oklch(67% 0.16 30)',
+            'coral-dark':'oklch(55% 0.16 30)',
+            teal:        'oklch(64% 0.11 190)',
+            amber:       'oklch(80% 0.13 75)',
+            plum:        'oklch(58% 0.14 350)',
+            ink:         'oklch(28% 0.028 60)',
+            muted:       'oklch(54% 0.024 60)',
+            surface:     'oklch(99.5% 0.004 80)',
+          },
+          borderRadius: { '2xl': '16px', '3xl': '24px', '4xl': '32px' },
+          fontFamily: {
+            display: ['Nunito', 'system-ui', 'sans-serif'],
+            body:    ['Nunito Sans', 'system-ui', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="/styles.css" rel="stylesheet">
+</head>
+<body class="font-body bg-cream text-ink min-h-screen">
+  <div id="app"></div>
+  <!-- CDNs -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <script src="/app.js" defer></script>
+</body>
+</html>

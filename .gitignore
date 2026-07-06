@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.venv/
+otkrytka.db
+*.db
+uploads/
+.pytest_cache/
+.ruff_cache/
+.claude/
+
+# dev scaffolding (build specs), not product code
+SPEC_*.md
+SPEC.md

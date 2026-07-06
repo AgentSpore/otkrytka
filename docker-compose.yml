@@ -1,0 +1,23 @@
+services:
+  otkrytka:
+    build: .
+    image: aspore-otkrytka:latest
+    container_name: aspore-otkrytka
+    restart: unless-stopped
+    ports:
+      - "10028:8000"
+    environment:
+      # Both the SQLite DB and the uploaded images live under /data so a redeploy
+      # never wipes wishes or photos.
+      OTKRYTKA_DB_PATH: /data/otkrytka.db
+      OTKRYTKA_UPLOAD_DIR: /data/uploads
+    volumes:
+      - otkrytka-data:/data
+
+volumes:
+  # External so it reuses the existing `otkrytka-data` volume (create once
+  # out-of-band with `docker volume create otkrytka-data`). Prevents compose
+  # from minting a new, empty `<project>_otkrytka-data` and wiping live boards +
+  # uploaded images on every redeploy.
+  otkrytka-data:
+    external: true
