@@ -11,6 +11,8 @@ services:
       # never wipes wishes or photos.
       OTKRYTKA_DB_PATH: /data/otkrytka.db
       OTKRYTKA_UPLOAD_DIR: /data/uploads
+      # Public canonical origin: used for og:url/og:image and oEmbed (override per deploy)
+      OTKRYTKA_CANONICAL_BASE_URL: ${OTKRYTKA_CANONICAL_BASE_URL:-https://otkrytka.agentspore.com}
     volumes:
       - otkrytka-data:/data
 
