@@ -30,6 +30,24 @@ const STR = {
     preview_n2: "Kirill",
     preview_n3: "The team",
 
+    // Landing: sample assembled card + how it works
+    sample_label: "This is what you gift",
+    ex_title: "Happy birthday, Masha!",
+    ex_for: "For Masha",
+    ex_n1: "Anya",
+    ex_w1: "Happy birthday! 🎉",
+    ex_n2: "Boris",
+    ex_w2: "Grow up big, I hug you!",
+    ex_n3: "Gleb",
+    ex_w3: "May all your wishes come true ✨",
+    ex_n4: "Dasha",
+    ex_w4: "Love you 💛",
+    how_label: "How it works",
+    how1: "Create a card",
+    how2: "Share the link",
+    how3: "Deliver it",
+    form_lead: "Ready? Make yours",
+
     // Header / board
     doc_title: "Otkrytka · Warm words, together",
     brand: "Otkrytka",
@@ -129,6 +147,24 @@ const STR = {
     preview_n1: "Мама",
     preview_n2: "Кирилл",
     preview_n3: "Команда",
+
+    // Landing: sample assembled card + how it works
+    sample_label: "Вот что вы дарите",
+    ex_title: "С днём рождения, Маша!",
+    ex_for: "Для Маши",
+    ex_n1: "Аня",
+    ex_w1: "С днём рождения! 🎉",
+    ex_n2: "Борис",
+    ex_w2: "Расти большой, обнимаю!",
+    ex_n3: "Глеб",
+    ex_w3: "Пусть всё сбудется ✨",
+    ex_n4: "Даша",
+    ex_w4: "Люблю тебя 💛",
+    how_label: "Как это работает",
+    how1: "Создай открытку",
+    how2: "Поделись ссылкой",
+    how3: "Подари",
+    form_lead: "Готовы? Соберите свою",
 
     // Header / board
     doc_title: "Открытка · Тёплые слова вскладчину",
@@ -647,14 +683,65 @@ function renderLanding(root) {
       ${mkLangSwitcher()}
     </nav>
 
-    <main class="hero-blobs" style="max-width:980px;margin:0 auto;padding:48px 6vw 80px">
+    <main class="hero-blobs" style="max-width:820px;margin:0 auto;padding:48px 6vw 80px">
       <div style="text-align:center;max-width:660px;margin:0 auto">
         <p class="hero-reveal-1 font-display" style="color:var(--coral);font-weight:800;letter-spacing:0.06em;text-transform:uppercase;font-size:0.8rem;margin-bottom:14px">${esc(t('hero_eyebrow'))}</p>
         <h1 class="hero-reveal-1 font-display" style="font-weight:900;font-size:clamp(2.2rem,6vw,3.4rem);line-height:1.05;color:var(--ink);letter-spacing:-0.02em">${esc(t('hero_title'))}</h1>
         <p class="hero-reveal-2" style="margin-top:16px;font-size:clamp(1.05rem,2.5vw,1.25rem);color:var(--muted)">${esc(t('hero_sub'))}</p>
       </div>
 
-      <div class="hero-reveal-3 cozy-card" style="max-width:540px;margin:36px auto 0;padding:24px">
+      <!-- The outcome: a sample assembled card, shown before the form -->
+      <p class="hero-reveal-2 font-display" style="text-align:center;font-size:0.75rem;color:var(--gold-deep);font-weight:800;letter-spacing:0.08em;text-transform:uppercase;margin:30px auto 12px">${esc(t('sample_label'))}</p>
+      <div class="hero-reveal-2 sample-card" style="margin:0 auto">
+        <div class="sample-head">
+          <span class="cover-badge">🎂</span>
+          <div style="min-width:0">
+            <p class="sample-for">🎀 ${esc(t('ex_for'))}</p>
+            <p class="sample-title">${esc(t('ex_title'))}</p>
+          </div>
+        </div>
+        <div class="masonry">
+          ${[
+            { n: t('ex_n1'), w: t('ex_w1'), pin: true },
+            { n: t('ex_n2'), w: t('ex_w2'), pin: false },
+            { n: t('ex_n3'), w: t('ex_w3'), pin: false },
+            { n: t('ex_n4'), w: t('ex_w4'), pin: false },
+          ].map(c => `
+            <div class="wish ${c.pin ? 'pinned' : ''}">
+              ${c.pin ? `<span class="pin-flag">📌 ${esc(t('pinned_flag'))}</span>` : ''}
+              <div class="wish-author" style="margin-top:${c.pin ? '8px' : '0'}">
+                <span class="wish-avatar" style="${avatarStyle(c.n)}">${esc(initial(c.n))}</span>${esc(c.n)}
+              </div>
+              <p class="wish-text">${esc(c.w)}</p>
+            </div>`).join('')}
+        </div>
+        <p style="text-align:center;font-size:0.85rem;color:var(--muted);margin-top:14px">${esc(t('preview_hint'))}</p>
+        <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px">
+          <span class="tally-chip" style="background:var(--sand);color:var(--muted)">🔓 ${esc(t('feat_free'))}</span>
+          <span class="tally-chip" style="background:var(--sand);color:var(--muted)">📷 ${esc(t('feat_photo'))}</span>
+          <span class="tally-chip" style="background:var(--sand);color:var(--muted)">⚡ ${esc(t('feat_live'))}</span>
+        </div>
+      </div>
+
+      <!-- How it works: collect wishes → share → gift -->
+      <div class="hero-reveal-3" style="max-width:560px;margin:34px auto 0">
+        <p class="font-display" style="text-align:center;font-size:0.75rem;color:var(--gold-deep);font-weight:800;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:16px">${esc(t('how_label'))}</p>
+        <div class="how-steps">
+          ${[
+            { i: '✍️', n: '1', l: t('how1') },
+            { i: '🔗', n: '2', l: t('how2') },
+            { i: '🎁', n: '3', l: t('how3') },
+          ].map(s => `
+            <div class="how-step">
+              <span class="step-icon">${s.i}<span class="step-num">${s.n}</span></span>
+              <span class="step-label">${esc(s.l)}</span>
+            </div>`).join('')}
+        </div>
+      </div>
+
+      <!-- Create form, after the emotional hook -->
+      <div class="hero-reveal-4 cozy-card" style="max-width:520px;margin:36px auto 0;padding:24px">
+        <p class="font-display" style="text-align:center;font-weight:800;font-size:1.15rem;color:var(--ink);margin-bottom:16px">${esc(t('form_lead'))}</p>
         <label class="modal-label" style="display:block;margin-bottom:8px">${esc(t('create_title_label'))}</label>
         <input id="create-title" class="kg-input" type="text" maxlength="120" placeholder="${esc(t('create_title_ph'))}">
         <label class="modal-label" style="display:block;margin:14px 0 8px">${esc(t('recipient_label'))}</label>
@@ -665,35 +752,11 @@ function renderLanding(root) {
         </div>
         <button id="create-btn" class="cta-hero" style="width:100%;margin-top:18px">💌 ${esc(t('create_btn'))}</button>
 
-        <div class="ornament-rule" style="margin:20px 0"><span>${esc(t('or_label'))}</span></div>
+        <div class="ornament-rule gold" style="margin:20px 0"><span>${esc(t('or_label'))}</span></div>
         <label class="modal-label" style="display:block;margin-bottom:8px">${esc(t('join_label'))}</label>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
           <input id="join-input" class="kg-input" style="flex:1;min-width:160px" type="text" maxlength="7" placeholder="${esc(t('join_ph'))}">
           <button id="join-btn" class="btn-soft btn-press-sm">${esc(t('join_go'))}</button>
-        </div>
-      </div>
-
-      <div class="hero-reveal-4" style="max-width:720px;margin:24px auto 0">
-        <p class="font-display" style="text-align:center;font-size:0.75rem;color:var(--muted);font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:12px">${esc(t('preview_label'))}</p>
-        <div class="masonry">
-          ${[
-            { n: t('preview_n1'), w: t('preview_w1'), pin: true },
-            { n: t('preview_n2'), w: t('preview_w2'), pin: false },
-            { n: t('preview_n3'), w: t('preview_w3'), pin: false },
-          ].map(c => `
-            <div class="wish ${c.pin ? 'pinned' : ''}">
-              ${c.pin ? `<span class="pin-flag">📌 ${esc(t('pinned_flag'))}</span>` : ''}
-              <div class="wish-author" style="margin-top:${c.pin ? '8px' : '0'}">
-                <span class="wish-avatar" style="${avatarStyle(c.n)}">${esc(initial(c.n))}</span>${esc(c.n)}
-              </div>
-              <p class="wish-text">${esc(c.w)}</p>
-            </div>`).join('')}
-        </div>
-        <p style="text-align:center;font-size:0.85rem;color:var(--muted);margin-top:8px">${esc(t('preview_hint'))}</p>
-        <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:16px">
-          <span class="tally-chip" style="background:var(--sand);color:var(--muted)">🔓 ${esc(t('feat_free'))}</span>
-          <span class="tally-chip" style="background:var(--sand);color:var(--muted)">📷 ${esc(t('feat_photo'))}</span>
-          <span class="tally-chip" style="background:var(--sand);color:var(--muted)">⚡ ${esc(t('feat_live'))}</span>
         </div>
       </div>
     </main>`;

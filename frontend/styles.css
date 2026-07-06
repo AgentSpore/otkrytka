@@ -167,7 +167,10 @@ body {
   transition: transform 120ms, border-color 120ms, background 120ms;
 }
 .cover-chip:hover { transform: translateY(-2px); }
-.cover-chip.sel { border-color: var(--coral); background: var(--coral-light); transform: translateY(-2px); }
+.cover-chip.sel {
+  border-color: var(--coral); background: var(--coral-light); transform: translateY(-2px);
+  box-shadow: 0 0 0 3px var(--amber); /* festive gold ring on the chosen cover */
+}
 
 /* ── Cover badge (board header) — gold postage-stamp feel ── */
 .cover-badge {
@@ -417,6 +420,53 @@ canvas#confetti-canvas {
   color: var(--muted); font-size: 0.8rem;
   font-family: 'Quicksand', system-ui, sans-serif;
   font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+}
+/* Gold divider variant — the "or" between create and join */
+.ornament-rule.gold::before, .ornament-rule.gold::after { background: var(--amber); }
+.ornament-rule.gold span { color: var(--gold-deep); }
+
+/* ── Landing: sample assembled card (the outcome) ── */
+.sample-card {
+  position: relative; max-width: 620px;
+  background: var(--surface);
+  border: 2px solid var(--amber);            /* festive gold frame */
+  border-radius: var(--radius-xl);
+  padding: 22px 20px 20px;
+  box-shadow: var(--shadow-card), 0 0 0 5px var(--amber-light);
+}
+.sample-head { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+.sample-for {
+  font-family: 'Quicksand', system-ui, sans-serif; font-weight: 700;
+  font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--gold-deep);                   /* gold recipient label */
+}
+.sample-title {
+  font-family: 'Fraunces', Georgia, serif; font-optical-sizing: auto;
+  font-weight: 800; font-size: clamp(1.15rem, 3.5vw, 1.5rem);
+  color: var(--ink); line-height: 1.1; margin-top: 2px; word-break: break-word;
+}
+
+/* ── Landing: 3-step "how it works" ── */
+.how-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.how-step { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+.step-icon {
+  position: relative;
+  width: 56px; height: 56px; border-radius: 50%;
+  background: var(--amber-light); border: 2px solid var(--amber); /* gold coin */
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 1.55rem; line-height: 1;
+}
+.step-num {
+  position: absolute; top: -6px; right: -6px;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--gold-deep); color: var(--surface);
+  font-family: 'Fraunces', Georgia, serif; font-weight: 700; font-size: 0.76rem;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 2px solid var(--surface);
+}
+.step-label {
+  font-family: 'Quicksand', system-ui, sans-serif; font-weight: 700;
+  font-size: 0.85rem; color: var(--ink); line-height: 1.3;
 }
 
 /* Title clamp */
