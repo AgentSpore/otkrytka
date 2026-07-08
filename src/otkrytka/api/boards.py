@@ -16,12 +16,40 @@ from fastapi import (
     WebSocketDisconnect,
 )
 
+from ..core.config import get_settings
 from ..core.db import get_db
 from ..core.realtime import hub
 from ..schemas.board import BoardCreate, CardCreate, OrganizerAction
 from ..services import board_service
 
 router = APIRouter()
+
+# Read the upload body in bounded chunks so an oversized stream is rejected
+# before the whole file is buffered into RAM (413), rather than after. This is an
+# intentional second layer behind the ASGI BodySizeLimitMiddleware: the middleware
+# caps raw wire bytes (envelope + overhead) while this caps the decoded file part,
+# and save_upload re-checks len(data) — redundant on purpose across the
+# multipart-vs-raw boundary, defense in depth for the one DoS-prone route.
+_UPLOAD_CHUNK = 64 * 1024
+
+
+async def _read_capped(file: UploadFile, max_bytes: int) -> bytes:
+    """Buffer the upload up to ``max_bytes``; stop and raise 413 once exceeded.
+
+    Never buffers more than one chunk past the cap, so an attacker cannot force
+    an unbounded read by lying about Content-Length.
+    """
+    chunks: list[bytes] = []
+    total = 0
+    while True:
+        chunk = await file.read(_UPLOAD_CHUNK)
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > max_bytes:
+            raise board_service.api_error(413, "image_too_large", "Image is too large")
+        chunks.append(chunk)
+    return b"".join(chunks)
 
 
 async def _notify(slug: str | None) -> None:
@@ -82,9 +110,14 @@ async def upload_image(
 ):
     # 404 if the board is gone, 409 if it is locked — checked BEFORE reading the
     # upload so a closed/deleted board never accumulates an orphan file on disk.
-    await board_service.ensure_accepting_cards(db, slug)
-    data = await file.read()
-    return {"image_path": board_service.save_upload(data)}
+    board_id = await board_service.ensure_accepting_cards(db, slug)
+    max_bytes = get_settings().max_upload_mb * 1024 * 1024
+    data = await _read_capped(file, max_bytes)
+    image_path = board_service.save_upload(data)
+    # Bind the minted file to this board so add_card can enforce ownership (422)
+    # and delete can later unlink it.
+    await board_service.register_upload(db, board_id, image_path)
+    return {"image_path": image_path}
 
 
 @router.patch("/boards/{board_id}/lock", response_model=dict)

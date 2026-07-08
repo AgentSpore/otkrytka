@@ -103,5 +103,7 @@ async def test_og_image_unknown_slug_is_png(client):
 
 def test_share_builder_uses_real_path():
     # The guest share + copy links must build the crawler-visible /c/{slug} path.
+    # The origin is resolved through canonicalOrigin() (window.__CANONICAL__ with a
+    # location.origin fallback) so a copied link points at the configured host.
     app_js = (Path(get_settings().frontend_dir) / "app.js").read_text(encoding="utf-8")
-    assert "${location.origin}/c/${slug}" in app_js
+    assert "${canonicalOrigin()}/c/${slug}" in app_js

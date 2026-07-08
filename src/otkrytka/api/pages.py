@@ -99,6 +99,8 @@ async def oembed(
         raise HTTPException(status_code=400, detail="malformed url") from None
     except og_service.OembedForeignError:
         raise HTTPException(status_code=404, detail="not a card url") from None
+    except og_service.OembedNotFoundError:
+        raise HTTPException(status_code=404, detail="unknown card") from None
     except og_service.OembedNotConfiguredError:
         raise HTTPException(status_code=500, detail="oembed not configured") from None
     return JSONResponse(payload, headers={"Cache-Control": _EMBED_CACHE_CONTROL})

@@ -117,7 +117,7 @@ const STR = {
     // Delivery
     deliver_intro: "For you,",
     back_to_board: "Back to the card",
-    download_pdf: "Download PDF",
+    download_pdf: "Print / Save as PDF",
 
     // Status / live / errors
     ws_live: "Live",
@@ -127,6 +127,50 @@ const STR = {
     err_generic: "Something went wrong.",
     confirm_delete_board: "Delete this card for everyone?",
     confirm_delete_card: "Remove this wish?",
+
+    // Inline validation + upload feedback
+    err_name_required: "Add your name first.",
+    processing: "Processing…",
+    err_img_type: "Only JPG, PNG or WEBP.",
+    err_img_size: "That image is too large (max {n} MB).",
+    img_alt: "Photo from {author}",
+    img_preview_alt: "Photo preview",
+
+    // Organizer-link recovery
+    created_only_way: "Save this private link now. It is the ONLY way to manage this card. Lose it and you cannot pin, close or deliver.",
+    copy_btn: "Copy",
+    save_file: "Save as file",
+    created_ack: "I saved my organizer link somewhere safe.",
+    org_file_intro: "Your PRIVATE organizer link for the card \"{title}\". Keep it secret: anyone with this link can pin, close, deliver or delete the card. Bookmark it or store it in your password manager.",
+    org_banner_text: "You are the only organizer. Save your private link so you never lose access.",
+    org_banner_save: "Save link",
+    import_link_cta: "I have an organizer link",
+    import_title: "Restore organizer access",
+    import_hint: "Paste your private organizer link (or its token) to manage its card on this device.",
+    import_ph: "Paste the organizer link…",
+    import_go: "Restore access",
+    import_bad: "That does not look like a valid organizer link.",
+    import_done: "Organizer access restored.",
+
+    // Backend error codes -> localized inline messages
+    err_codes: {
+      author_required: "Please add your name.",
+      board_full: "This card is full, so no more wishes can be added.",
+      board_locked: "This card is closed and no longer accepts wishes.",
+      board_not_found: "Card not found.",
+      card_not_found: "That wish no longer exists.",
+      content_required: "Add some words, a photo or a GIF.",
+      gif_url_invalid: "That GIF link is not valid.",
+      gif_url_not_image: "That link is not a direct image or GIF.",
+      image_ref_invalid: "That image could not be attached.",
+      image_too_large: "That image is too large.",
+      image_unsupported_type: "Only JPG, PNG or WEBP images are allowed.",
+      image_wrong_board: "That image belongs to a different card.",
+      organizer_token_required: "Only the organizer can do that.",
+      slug_unavailable: "That card code is taken. Please try again.",
+      upload_limit: "Upload limit reached. Please try again later.",
+      request_too_large: "That request is too large.",
+    },
   },
   ru: {
     // Landing
@@ -242,7 +286,7 @@ const STR = {
     // Delivery
     deliver_intro: "Для тебя,",
     back_to_board: "Вернуться к открытке",
-    download_pdf: "Скачать PDF",
+    download_pdf: "Печать / Сохранить в PDF",
 
     // Status / live / errors
     ws_live: "Вживую",
@@ -252,15 +296,62 @@ const STR = {
     err_generic: "Что-то пошло не так.",
     confirm_delete_board: "Удалить открытку для всех?",
     confirm_delete_card: "Убрать это пожелание?",
+
+    // Inline validation + upload feedback
+    err_name_required: "Сначала укажите имя.",
+    processing: "Обрабатываем…",
+    err_img_type: "Только JPG, PNG или WEBP.",
+    err_img_size: "Файл слишком большой (макс. {n} МБ).",
+    img_alt: "Фото от {author}",
+    img_preview_alt: "Предпросмотр фото",
+
+    // Organizer-link recovery
+    created_only_way: "Сохраните эту личную ссылку сейчас. Это единственный способ управлять открыткой. Без неё вы не сможете закреплять, закрывать и вручать.",
+    copy_btn: "Копировать",
+    save_file: "Сохранить файлом",
+    created_ack: "Я сохранил(а) ссылку организатора в надёжном месте.",
+    org_file_intro: "Ваша ЛИЧНАЯ ссылка организатора для открытки «{title}». Держите её в секрете: любой, у кого есть эта ссылка, сможет закреплять, закрывать, вручать и удалять открытку. Добавьте её в закладки или сохраните в менеджере паролей.",
+    org_banner_text: "Вы единственный организатор. Сохраните личную ссылку, чтобы не потерять доступ.",
+    org_banner_save: "Сохранить ссылку",
+    import_link_cta: "У меня есть ссылка организатора",
+    import_title: "Восстановить доступ организатора",
+    import_hint: "Вставьте личную ссылку организатора (или её токен), чтобы управлять открыткой на этом устройстве.",
+    import_ph: "Вставьте ссылку организатора…",
+    import_go: "Восстановить доступ",
+    import_bad: "Это не похоже на действительную ссылку организатора.",
+    import_done: "Доступ организатора восстановлен.",
+
+    // Backend error codes -> localized inline messages
+    err_codes: {
+      author_required: "Пожалуйста, укажите имя.",
+      board_full: "Открытка заполнена, добавить пожелание больше нельзя.",
+      board_locked: "Открытка закрыта и больше не принимает пожелания.",
+      board_not_found: "Открытка не найдена.",
+      card_not_found: "Этого пожелания больше нет.",
+      content_required: "Добавьте слова, фото или GIF.",
+      gif_url_invalid: "Ссылка на GIF недействительна.",
+      gif_url_not_image: "Эта ссылка не ведёт на картинку или GIF.",
+      image_ref_invalid: "Не удалось прикрепить это изображение.",
+      image_too_large: "Изображение слишком большое.",
+      image_unsupported_type: "Разрешены только изображения JPG, PNG или WEBP.",
+      image_wrong_board: "Это изображение принадлежит другой открытке.",
+      organizer_token_required: "Это может сделать только организатор.",
+      slug_unavailable: "Такой код открытки занят. Попробуйте ещё раз.",
+      upload_limit: "Достигнут лимит загрузок. Попробуйте позже.",
+      request_too_large: "Слишком большой запрос.",
+    },
   },
 };
+
+const MAX_UPLOAD_MB = 10; // client-side pre-check; server also enforces (image_too_large)
 
 const COVERS = ['🎂', '🎉', '💐', '🌸', '❤️', '🎁', '✨', '🥳', '🌟', '🎈'];
 
 // ─── State ─────────────────────────────────────────────────────────────────
 const state = {
   lang: (() => {
-    const s = localStorage.getItem('otkrytka_lang');
+    let s = null;
+    try { s = localStorage.getItem('otkrytka_lang'); } catch (_) {}
     if (s) return s;
     return (navigator.language || '').toLowerCase().startsWith('ru') ? 'ru' : 'en';
   })(),
@@ -419,6 +510,37 @@ function t(key, vars) {
 }
 
 // ─── API helpers ─────────────────────────────────────────────────────────────
+/** Turn a FastAPI error body into a localized message. Handles the stable
+ *  contract `{detail:{code,message}}`, a pydantic 422 `{detail:[...]}` list,
+ *  a plain string detail, and a missing detail — never surfaces `[object
+ *  Object]` or `undefined`. Returns { message, code }. */
+function localizeApiError(json) {
+  const d = json ? json.detail : undefined;
+  if (d && typeof d === 'object' && !Array.isArray(d)) {
+    if (d.code) {
+      const table = (STR[state.lang] && STR[state.lang].err_codes) || {};
+      const enTable = STR.en.err_codes || {};
+      const msg = table[d.code] || enTable[d.code] || d.message || t('err_generic');
+      return { message: msg, code: d.code };
+    }
+    return { message: (typeof d.message === 'string' && d.message) || t('err_generic'), code: null };
+  }
+  if (Array.isArray(d)) {
+    const first = d[0];
+    const msg = (first && typeof first.msg === 'string') ? first.msg : t('err_generic');
+    return { message: msg, code: null };
+  }
+  if (typeof d === 'string' && d) return { message: d, code: null };
+  return { message: t('err_generic'), code: null };
+}
+
+function apiError(json) {
+  const { message, code } = localizeApiError(json);
+  const err = new Error(message);
+  err.code = code;
+  return err;
+}
+
 async function apiCall(method, path, body) {
   const opts = { method, headers: {} };
   if (body !== undefined) {
@@ -428,7 +550,7 @@ async function apiCall(method, path, body) {
   const res = await fetch(path, opts);
   if (res.status === 204) return null;
   const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(json.detail || t('err_generic'));
+  if (!res.ok) throw apiError(json);
   return json;
 }
 
@@ -444,15 +566,32 @@ async function uploadImage(slug, blob, filename) {
   fd.append('file', blob, filename);
   const res = await fetch(`/api/v1/boards/${slug}/upload`, { method: 'POST', body: fd });
   const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(json.detail || t('err_generic'));
+  if (!res.ok) throw apiError(json);
   return json.image_path;
 }
 
-// ─── Local storage helpers ───────────────────────────────────────────────────
-function getMyName(slug) { return localStorage.getItem(`otkrytka_me_${slug}`) || ''; }
-function setMyName(slug, name) { localStorage.setItem(`otkrytka_me_${slug}`, name); }
-function getOrgToken(slug) { return localStorage.getItem(`otkrytka_org_${slug}`) || ''; }
-function setOrgToken(slug, token) { localStorage.setItem(`otkrytka_org_${slug}`, token); }
+// ─── Local storage helpers (safe: private mode / disabled storage must not break) ─
+function lsGet(key) {
+  try { return localStorage.getItem(key); } catch (_) { return null; }
+}
+function lsSet(key, val) {
+  try { localStorage.setItem(key, val); return true; } catch (_) { return false; }
+}
+function lsRemove(key) {
+  try { localStorage.removeItem(key); } catch (_) {}
+}
+
+function getMyName(slug) { return lsGet(`otkrytka_me_${slug}`) || ''; }
+function setMyName(slug, name) { lsSet(`otkrytka_me_${slug}`, name); }
+function getOrgToken(slug) { return lsGet(`otkrytka_org_${slug}`) || ''; }
+function setOrgToken(slug, token) { lsSet(`otkrytka_org_${slug}`, token); }
+
+// Canonical origin — server injects window.__CANONICAL__ on /c/{slug} & /embed/{slug};
+// fall back to the current origin for the bare hash routes and the static landing.
+function canonicalOrigin() { return window.__CANONICAL__ || location.origin; }
+
+function orgBannerDismissed(slug) { return lsGet(`otkrytka_orgbanner_${slug}`) === '1'; }
+function dismissOrgBanner(slug) { lsSet(`otkrytka_orgbanner_${slug}`, '1'); }
 
 // ─── XSS escape ──────────────────────────────────────────────────────────────
 function esc(s) {
@@ -552,8 +691,33 @@ function mkLangSwitcher() {
     </div>`;
 }
 
-// ─── Generic modal shell ─────────────────────────────────────────────────────
-function openModal(innerHtml) {
+// ─── Single-modal manager ────────────────────────────────────────────────────
+// Invariant: at most ONE modal exists in the DOM at any moment. openModal() first
+// tears down any live modal (and its Escape listener) before mounting a new one,
+// so a second open can never stack a second .modal-card. Modal state is NEVER
+// persisted, so a reload starts with no modal (see clearAllModals() in init()).
+let _activeModal = null;
+let _modalSeq = 0;
+
+function clearAllModals() {
+  // Capture + detach the active modal first, so settling its promise cannot
+  // re-enter this teardown.
+  const prev = _activeModal;
+  _activeModal = null;
+  if (prev && prev.onKey) document.removeEventListener('keydown', prev.onKey);
+  // Settle the pending caller promise (resolve null) BEFORE ripping the DOM out,
+  // so a 2nd openModal firing before the 1st settled never leaves an `await` hung.
+  // The caller's resolver is idempotent, so a later real resolve still wins.
+  if (prev && prev.onDismiss) { try { prev.onDismiss(); } catch (_) {} }
+  // Defensive: remove every overlay in the DOM (guarantees .modal-card count 0),
+  // not just the tracked one, in case anything ever slipped past the manager.
+  document.querySelectorAll('.modal-overlay').forEach(o => o.remove());
+}
+
+function openModal(innerHtml, opts) {
+  clearAllModals(); // enforce the single-modal invariant before mounting
+  const onDismiss = (opts && opts.onDismiss) || null;
+  const id = ++_modalSeq;
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
   overlay.setAttribute('role', 'dialog');
@@ -563,60 +727,61 @@ function openModal(innerHtml) {
   card.innerHTML = innerHtml;
   overlay.appendChild(card);
   document.body.appendChild(overlay);
-  const close = () => overlay.remove();
+  // Identity-scoped close: only tears down if THIS modal is still the active one,
+  // so a stale close() from an older caller can never nuke a newer modal.
+  const close = () => { if (_activeModal && _activeModal.id === id) clearAllModals(); };
   overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
-  document.addEventListener('keydown', function onKey(e) {
-    if (e.key === 'Escape') { close(); document.removeEventListener('keydown', onKey); }
-  });
+  const onKey = e => { if (e.key === 'Escape') close(); };
+  document.addEventListener('keydown', onKey);
+  _activeModal = { id, overlay, card, close, onKey, onDismiss };
   return { overlay, card, close };
 }
 
-// ─── Name modal (ensureName gate before adding a card) ───────────────────────
-let _nameModalOpen = false;
-
+// ─── Name modal (set/change the signer name for this card) ───────────────────
 function showNameModal(slug, current) {
-  _nameModalOpen = true;
   return new Promise(resolve => {
-    const { overlay, card } = openModal(`
+    let settled = false;
+    const finish = (val) => { if (!settled) { settled = true; resolve(val); } };
+    const { card, close } = openModal(`
       <h2 class="modal-title">${esc(t('name_modal_title'))}</h2>
       <input class="kg-input" type="text" placeholder="${esc(t('name_ph'))}" maxlength="48" value="${esc(current || '')}" autocomplete="nickname">
+      <p class="field-err" data-f="err" hidden></p>
       <div class="flex gap-2">
         <button class="flex-1 py-3 rounded-2xl border-2 font-body btn-press-sm" style="border-color:var(--sand-deep);color:var(--muted);font-weight:700" data-action="cancel">${esc(t('cancel_btn'))}</button>
         <button class="flex-1 py-3 rounded-2xl font-body btn-press" style="background:var(--coral-dark);color:var(--surface);font-weight:700" data-action="save">${esc(t('name_save'))}</button>
-      </div>`);
+      </div>`, { onDismiss: () => finish(null) });
     const input = card.querySelector('input');
+    const err = card.querySelector('[data-f="err"]');
     setTimeout(() => input.focus(), 30);
     const doSave = () => {
       const name = input.value.trim();
-      if (!name) { input.focus(); return; }
+      if (!name) { showFieldError(err, input, t('err_name_required')); return; }
       setMyName(slug, name);
-      overlay.remove();
-      _nameModalOpen = false;
-      resolve(name);
+      finish(name); // resolve BEFORE teardown; the onDismiss finish(null) is then a no-op
+      close();
     };
-    const doCancel = () => { overlay.remove(); _nameModalOpen = false; resolve(null); };
+    const doCancel = () => { finish(null); close(); };
     card.querySelector('[data-action="save"]').addEventListener('click', doSave);
     card.querySelector('[data-action="cancel"]').addEventListener('click', doCancel);
+    input.addEventListener('input', () => clearFieldError(err, input));
     input.addEventListener('keydown', e => {
       if (e.key === 'Enter') doSave();
       if (e.key === 'Escape') doCancel();
     });
-    overlay.addEventListener('click', e => { if (e.target === overlay) doCancel(); });
   });
 }
 
-function ensureName(slug) {
-  const existing = getMyName(slug);
-  if (existing) return Promise.resolve(existing);
-  if (_nameModalOpen) {
-    return new Promise(resolve => {
-      const poll = setInterval(() => {
-        const n = getMyName(slug);
-        if (n) { clearInterval(poll); resolve(n); }
-      }, 200);
-    });
+// ─── Inline field-error helpers (message shown next to the field, not a toast) ─
+function showFieldError(errEl, fieldEl, msg) {
+  if (errEl) { errEl.textContent = '⚠ ' + msg; errEl.hidden = false; }
+  if (fieldEl) {
+    fieldEl.classList.add('invalid');
+    try { fieldEl.focus(); } catch (_) {}
   }
-  return showNameModal(slug);
+}
+function clearFieldError(errEl, fieldEl) {
+  if (errEl) { errEl.textContent = ''; errEl.hidden = true; }
+  if (fieldEl) fieldEl.classList.remove('invalid');
 }
 
 // ─── Client-side image resize (canvas, max ~1600px) ──────────────────────────
@@ -794,6 +959,9 @@ function renderLanding(root) {
           <input id="join-input" class="kg-input" style="flex:1;min-width:160px" type="text" maxlength="7" placeholder="${esc(t('join_ph'))}">
           <button id="join-btn" class="btn-soft btn-press-sm">${esc(t('join_go'))}</button>
         </div>
+        <div style="text-align:center;margin-top:16px">
+          <button id="import-org" class="font-display" style="background:transparent;border:none;color:var(--gold-deep);font-weight:800;font-size:0.82rem;cursor:pointer;text-decoration:underline">🔑 ${esc(t('import_link_cta'))}</button>
+        </div>
       </div>
     </main>`;
 
@@ -813,7 +981,7 @@ function renderLanding(root) {
     try {
       const out = await api.post('/api/v1/boards', { title, recipient, cover });
       setOrgToken(out.slug, out.organizer_token);
-      showCreatedModal(out.slug, out.organizer_token);
+      showCreatedModal(out.slug, out.organizer_token, title);
     } catch (e) { showToast(e.message); }
   };
   root.querySelector('#create-btn').addEventListener('click', doCreate);
@@ -826,37 +994,131 @@ function renderLanding(root) {
   };
   root.querySelector('#join-btn').addEventListener('click', doJoin);
   joinInput.addEventListener('keydown', e => { if (e.key === 'Enter') doJoin(); });
+
+  root.querySelector('#import-org').addEventListener('click', () => showImportModal());
 }
 
-// ─── Created modal (organizer link shown once) ───────────────────────────────
-function showCreatedModal(slug, token) {
-  // Guest link = real path (unfurls); organizer link stays a hash so the secret
-  // token never lands in a server request path, access log or crawler fetch.
-  const shareUrl = `${location.origin}/c/${slug}`;
-  const manageUrl = `${location.origin}/#/${slug}/k/${token}`;
-  const { overlay, card } = openModal(`
+/** Build the private organizer (manage) URL. Kept as a hash route so the secret
+ *  token never lands in a server request path, access log or crawler fetch. */
+function manageUrlFor(slug, token) { return `${canonicalOrigin()}/#/${slug}/k/${token}`; }
+/** Guest link = real path so crawlers unfurl the per-board preview. */
+function guestUrlFor(slug) { return `${canonicalOrigin()}/c/${slug}`; }
+
+/** Trigger a client-side download of the organizer link as a plain .txt file so
+ *  the user can save it off-device (no backend involvement). */
+function downloadOrganizerLink(slug, manageUrl, title) {
+  const intro = t('org_file_intro', { title: title || slug });
+  const body = `${intro}\n\n${manageUrl}\n`;
+  try {
+    const blob = new Blob([body], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `otkrytka-organizer-${slug}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (_) { showToast(t('err_generic')); }
+}
+
+async function copyToClipboard(text) {
+  try { await navigator.clipboard.writeText(text); showToast(t('copy_done'), 1400); return true; }
+  catch (_) { return false; }
+}
+
+// ─── Created modal (organizer link surfaced + forced acknowledgment) ──────────
+function showCreatedModal(slug, token, boardTitle) {
+  const shareUrl = guestUrlFor(slug);
+  const manageUrl = manageUrlFor(slug, token);
+  const title = boardTitle || (state.board ? state.board.title : '');
+  const { card, close } = openModal(`
     <h2 class="modal-title">🎉 ${esc(t('created_title'))}</h2>
     <p style="color:var(--muted)">${esc(t('created_sub'))}</p>
     <label class="modal-label">${esc(t('created_share_label'))}</label>
     <div style="display:flex;gap:8px">
       <input class="kg-input" style="flex:1" readonly value="${esc(shareUrl)}" data-field="share">
-      <button class="btn-soft btn-press-sm" data-copy="${esc(shareUrl)}">🔗</button>
+      <button class="btn-soft btn-press-sm" data-copy="${esc(shareUrl)}" aria-label="${esc(t('copy_link'))}" title="${esc(t('copy_link'))}">🔗</button>
     </div>
+
     <label class="modal-label" style="margin-top:6px">${esc(t('created_manage_label'))}</label>
-    <div style="display:flex;gap:8px">
+    <div class="manage-callout"><span aria-hidden="true">🔑</span><span>${esc(t('created_only_way'))}</span></div>
+    <div style="display:flex;gap:8px;margin-top:8px">
       <input class="kg-input" style="flex:1" readonly value="${esc(manageUrl)}" data-field="manage">
-      <button class="btn-soft btn-press-sm" data-copy="${esc(manageUrl)}">🔗</button>
     </div>
-    <p style="font-size:0.82rem;color:var(--muted)">${esc(t('created_manage_hint'))}</p>
-    <button class="cta-hero" style="width:100%" data-action="go">${esc(t('created_go'))}</button>`);
+    <div class="link-actions">
+      <button class="org-mini-btn" data-copy="${esc(manageUrl)}">🔗 ${esc(t('copy_btn'))}</button>
+      <button class="org-mini-btn" data-f="dl">💾 ${esc(t('save_file'))}</button>
+      <button class="org-mini-btn" data-f="qr">▦ ${esc(t('qr_btn'))}</button>
+    </div>
+    <div class="qr-inline" data-f="qrbox" hidden></div>
+
+    <label class="ack-row">
+      <input type="checkbox" data-f="ack">
+      <span>${esc(t('created_ack'))}</span>
+    </label>
+    <button class="cta-hero" style="width:100%" data-action="go" disabled>${esc(t('created_go'))}</button>`);
+
   card.querySelectorAll('[data-copy]').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      try { await navigator.clipboard.writeText(btn.dataset.copy); showToast(t('copy_done'), 1400); } catch (_) {}
-    });
+    btn.addEventListener('click', () => copyToClipboard(btn.dataset.copy));
   });
-  card.querySelector('[data-action="go"]').addEventListener('click', () => {
-    overlay.remove();
+  card.querySelector('[data-f="dl"]').addEventListener('click', () => downloadOrganizerLink(slug, manageUrl, title));
+
+  const qrBox = card.querySelector('[data-f="qrbox"]');
+  card.querySelector('[data-f="qr"]').addEventListener('click', () => {
+    if (!qrBox.hidden) { qrBox.hidden = true; return; }
+    if (!qrBox.dataset.rendered) {
+      renderQrInto(qrBox, manageUrl, 180);
+      qrBox.dataset.rendered = '1';
+    }
+    qrBox.hidden = false;
+  });
+
+  const ack = card.querySelector('[data-f="ack"]');
+  const goBtn = card.querySelector('[data-action="go"]');
+  ack.addEventListener('change', () => { goBtn.disabled = !ack.checked; });
+  goBtn.addEventListener('click', () => {
+    if (!ack.checked) return;
+    close();
     goTo(`#/${slug}`);
+  });
+}
+
+// ─── Import organizer link (restore access on a new device) ──────────────────
+/** Extract {slug, token} from a pasted organizer link or a raw token. Accepts a
+ *  full URL, a `#/slug/k/token` fragment, or (with a known slug) a bare token. */
+function parseOrganizerLink(raw, knownSlug) {
+  const s = String(raw || '').trim();
+  if (!s) return null;
+  const m = s.match(/#\/?([a-z0-9]+)\/k\/([^/\s#?]+)/i);
+  if (m) return { slug: m[1].toLowerCase(), token: m[2] };
+  if (knownSlug && /^[A-Za-z0-9._-]+$/.test(s)) return { slug: knownSlug.toLowerCase(), token: s };
+  return null;
+}
+
+function showImportModal(knownSlug) {
+  const { card, close } = openModal(`
+    <h2 class="modal-title">🔑 ${esc(t('import_title'))}</h2>
+    <p style="color:var(--muted);font-size:0.9rem">${esc(t('import_hint'))}</p>
+    <textarea class="kg-textarea" data-f="link" placeholder="${esc(t('import_ph'))}" style="min-height:84px"></textarea>
+    <p class="field-err" data-f="err" hidden></p>
+    <div class="flex gap-2">
+      <button class="flex-1 py-3 rounded-2xl border-2 font-body btn-press-sm" style="border-color:var(--sand-deep);color:var(--muted);font-weight:700" data-f="cancel">${esc(t('cancel_btn'))}</button>
+      <button class="flex-1 py-3 rounded-2xl font-body btn-press" style="background:var(--coral-dark);color:var(--surface);font-weight:700" data-f="go">${esc(t('import_go'))}</button>
+    </div>`);
+  const input = card.querySelector('[data-f="link"]');
+  const err = card.querySelector('[data-f="err"]');
+  setTimeout(() => input.focus(), 30);
+  input.addEventListener('input', () => clearFieldError(err, input));
+  card.querySelector('[data-f="cancel"]').addEventListener('click', () => close());
+  card.querySelector('[data-f="go"]').addEventListener('click', () => {
+    const parsed = parseOrganizerLink(input.value, knownSlug);
+    if (!parsed) { showFieldError(err, input, t('import_bad')); return; }
+    // Same adoption path the hash `#/slug/k/token` route uses.
+    setOrgToken(parsed.slug, parsed.token);
+    close();
+    showToast(t('import_done'), 2200);
+    goTo(`#/${parsed.slug}`);
   });
 }
 
@@ -882,9 +1144,12 @@ async function renderBoard(root, slug) {
 }
 
 function wishHtml(c, isOrganizer, animate) {
+  const alt = esc(t('img_alt', { author: c.author_name || '?' }));
+  // Own uploads are same-origin; GIF/URL images are third-party, so add
+  // referrerpolicy="no-referrer" to avoid leaking the card URL / visitor IP.
   const media = c.image_path
-    ? `<div class="wish-media"><img src="${esc(c.image_path)}" alt="" loading="lazy"></div>`
-    : (c.gif_url ? `<div class="wish-media"><img src="${esc(c.gif_url)}" alt="" loading="lazy"></div>` : '');
+    ? `<div class="wish-media"><img src="${esc(c.image_path)}" alt="${alt}" loading="lazy"></div>`
+    : (c.gif_url ? `<div class="wish-media"><img src="${esc(c.gif_url)}" alt="${alt}" loading="lazy" referrerpolicy="no-referrer"></div>` : '');
   const tools = isOrganizer ? `
     <div class="wish-tools">
       <button class="wish-tool" data-pin="${c.id}">${c.pinned ? '📌 ' + esc(t('unpin_action')) : '📌 ' + esc(t('pin_action'))}</button>
@@ -918,7 +1183,7 @@ function paintBoard(root, slug, opts = {}) {
 
   root.innerHTML = `
     <nav style="position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:12px 5vw;background:oklch(98% 0.018 75 / 0.92);backdrop-filter:blur(12px);border-bottom:2px solid var(--sand-deep)">
-      <a class="font-display" style="display:inline-flex;align-items:center;gap:8px;font-size:0.95rem;color:var(--muted);text-decoration:none;font-weight:800" href="/" data-home="1">← ${esc(t('home_link'))}</a>
+      <a class="font-display nav-back" style="font-size:0.95rem;color:var(--muted);text-decoration:none;font-weight:800" href="/" data-home="1" aria-label="${esc(t('home_link'))}"><span aria-hidden="true">←</span><span class="nav-label">${esc(t('home_link'))}</span></a>
       <div style="display:flex;align-items:center;gap:10px">
         <span id="live-pip" class="live-pip"></span>
         ${mkLangSwitcher()}
@@ -933,6 +1198,17 @@ function paintBoard(root, slug, opts = {}) {
           ${b.recipient ? `<p style="color:var(--muted);margin-top:2px;font-weight:600">${esc(t('for_word'))} <span style="color:var(--ink);font-weight:800">${esc(b.recipient)}</span></p>` : ''}
         </div>
       </div>
+
+      ${isOrganizer && !orgBannerDismissed(slug) ? `
+      <div class="org-banner" data-f="orgbanner" style="margin-top:18px">
+        <span aria-hidden="true" style="font-size:1.3rem">🔑</span>
+        <p class="org-banner-text">${esc(t('org_banner_text'))}</p>
+        <div class="org-banner-actions">
+          <button class="org-mini-btn" data-f="org-copy">🔗 ${esc(t('org_banner_save'))}</button>
+          <button class="org-mini-btn" data-f="org-qr">▦ ${esc(t('qr_btn'))}</button>
+        </div>
+        <button class="org-banner-close" data-f="org-dismiss" aria-label="${esc(t('cancel_btn'))}" title="${esc(t('cancel_btn'))}">✕</button>
+      </div>` : ''}
 
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:18px">
         <span class="font-display" style="font-size:0.8rem;color:var(--muted);font-weight:700;margin-right:2px">${esc(t('share_label'))}</span>
@@ -979,7 +1255,7 @@ function paintBoard(root, slug, opts = {}) {
 function shareUrls(slug, recipient) {
   // Guest link is the real path /c/{slug} so crawlers (Telegram/WhatsApp/Slack)
   // can fetch it and unfurl the per-board card preview.
-  const url = `${location.origin}/c/${slug}`;
+  const url = guestUrlFor(slug);
   const msg = recipient
     ? `${t('add_wish_btn')} · ${recipient}`
     : t('add_wish_btn');
@@ -1013,6 +1289,21 @@ function wireBoard(root, slug) {
 
   const qrBtn = root.querySelector('[data-qr]');
   if (qrBtn) qrBtn.addEventListener('click', () => showQrModal(su.url));
+
+  // Organizer "save your link" banner — copy / QR of the private manage link, dismiss.
+  if (token) {
+    const manageUrl = manageUrlFor(slug, token);
+    const orgCopy = root.querySelector('[data-f="org-copy"]');
+    if (orgCopy) orgCopy.addEventListener('click', () => copyToClipboard(manageUrl));
+    const orgQr = root.querySelector('[data-f="org-qr"]');
+    if (orgQr) orgQr.addEventListener('click', () => showQrModal(manageUrl));
+    const orgDismiss = root.querySelector('[data-f="org-dismiss"]');
+    if (orgDismiss) orgDismiss.addEventListener('click', () => {
+      dismissOrgBanner(slug);
+      const banner = root.querySelector('[data-f="orgbanner"]');
+      if (banner) banner.remove();
+    });
+  }
 
   const embedBtn = root.querySelector('[data-embed]');
   if (embedBtn) embedBtn.addEventListener('click', () => showEmbedModal(slug));
@@ -1088,23 +1379,26 @@ async function refreshBoard(root, slug) {
   }
 }
 
-// ─── QR modal ────────────────────────────────────────────────────────────────
+// ─── QR rendering ────────────────────────────────────────────────────────────
+/** Render a QR code for `url` into `box`, degrading to the plain URL text if the
+ *  qrcode library failed to load (e.g. blocked CDN + SRI mismatch). */
+function renderQrInto(box, url, size = 220) {
+  if (typeof QRCode !== 'undefined') {
+    try {
+      new QRCode(box, { text: url, width: size, height: size, colorDark: '#33202b', colorLight: '#fdf6ee' });
+      return;
+    } catch (_) { /* fall through to text */ }
+  }
+  box.innerHTML = `<span style="color:var(--muted);word-break:break-all">${esc(url)}</span>`;
+}
+
 function showQrModal(url) {
   const { card } = openModal(`
     <h2 class="modal-title">${esc(t('qr_title'))}</h2>
     <div class="qr-box" id="qr-box"></div>
     <button class="btn-soft btn-press-sm" data-copy="${esc(url)}" style="width:100%">🔗 ${esc(t('copy_link'))}</button>`);
-  const box = card.querySelector('#qr-box');
-  if (typeof QRCode !== 'undefined') {
-    try {
-      new QRCode(box, { text: url, width: 220, height: 220, colorDark: '#33202b', colorLight: '#fdf6ee' });
-    } catch (_) { box.textContent = url; }
-  } else {
-    box.innerHTML = `<span style="color:var(--muted);word-break:break-all">${esc(url)}</span>`;
-  }
-  card.querySelector('[data-copy]').addEventListener('click', async () => {
-    try { await navigator.clipboard.writeText(url); showToast(t('copy_done'), 1400); } catch (_) {}
-  });
+  renderQrInto(card.querySelector('#qr-box'), url, 220);
+  card.querySelector('[data-copy]').addEventListener('click', () => copyToClipboard(url));
 }
 
 // ─── Embed modal (copy the iframe snippet) ───────────────────────────────────
@@ -1113,7 +1407,7 @@ function showEmbedModal(slug) {
   // present (so the snippet points at the real host even when the SPA is opened
   // on a bare hash route), else the current origin. The board title becomes the
   // iframe title="..." attribute; esc() keeps it a safe, single-escaped value.
-  const canonical = window.__CANONICAL__ || location.origin;
+  const canonical = canonicalOrigin();
   const title = state.board ? state.board.title : '';
   const src = `${canonical}/embed/${slug}`;
   const snippet =
@@ -1150,8 +1444,7 @@ async function renderEmbed(root, slug) {
 function paintEmbed(root, slug, opts = {}) {
   const animateNew = !!opts.animateNew;
   const b = state.board;
-  const canonical = window.__CANONICAL__ || location.origin;
-  const openUrl = `${canonical}/c/${slug}`;
+  const openUrl = `${canonicalOrigin()}/c/${slug}`;
 
   // Read-only: wishHtml(..., isOrganizer=false, ...) emits no pin/delete tools.
   const cardsHtml = b.cards.length === 0
@@ -1182,7 +1475,7 @@ function paintEmbed(root, slug, opts = {}) {
 function showAddWishModal(root, slug) {
   let picked = null; // { blob, filename }
   const preset = getMyName(slug);
-  const { overlay, card } = openModal(`
+  const { card, close } = openModal(`
     <h2 class="modal-title">💌 ${esc(t('add_modal_title'))}</h2>
     <div>
       <label class="modal-label">${esc(t('name_label'))}</label>
@@ -1196,6 +1489,7 @@ function showAddWishModal(root, slug) {
       <label class="modal-label">${esc(t('photo_label'))}</label>
       <div class="drop-zone" data-f="drop" style="margin-top:6px">📷 ${esc(t('drop_hint'))}</div>
       <input type="file" accept="image/jpeg,image/png,image/webp" data-f="file" hidden>
+      <p class="field-err" data-f="fileerr" hidden></p>
       <div data-f="preview" style="margin-top:10px"></div>
     </div>
     <div>
@@ -1203,6 +1497,7 @@ function showAddWishModal(root, slug) {
       <input class="kg-input" data-f="gif" type="url" maxlength="500" placeholder="${esc(t('gif_ph'))}" style="margin-top:6px">
       <p style="font-size:0.78rem;color:var(--muted);margin-top:4px">${esc(t('gif_hint'))}</p>
     </div>
+    <p class="field-err" data-f="err" hidden></p>
     <div class="flex gap-2">
       <button class="flex-1 py-3 rounded-2xl border-2 font-body btn-press-sm" style="border-color:var(--sand-deep);color:var(--muted);font-weight:700" data-f="cancel">${esc(t('cancel_btn'))}</button>
       <button class="flex-1 py-3 rounded-2xl font-body btn-press" style="background:var(--coral-dark);color:var(--surface);font-weight:700" data-f="send">${esc(t('send_wish'))}</button>
@@ -1215,25 +1510,47 @@ function showAddWishModal(root, slug) {
   const drop = card.querySelector('[data-f="drop"]');
   const preview = card.querySelector('[data-f="preview"]');
   const sendBtn = card.querySelector('[data-f="send"]');
+  const formErr = card.querySelector('[data-f="err"]');
+  const fileErr = card.querySelector('[data-f="fileerr"]');
+  const dropIdle = `📷 ${esc(t('drop_hint'))}`;
 
   const showPreview = (blob) => {
     const url = URL.createObjectURL(blob);
     preview.innerHTML = `
       <div class="img-preview">
-        <img src="${url}" alt="">
+        <img src="${url}" alt="${esc(t('img_preview_alt'))}">
         <button class="img-remove" data-f="remove" aria-label="${esc(t('remove_photo'))}" title="${esc(t('remove_photo'))}">✕</button>
       </div>`;
     preview.querySelector('[data-f="remove"]').addEventListener('click', () => {
       picked = null; preview.innerHTML = ''; URL.revokeObjectURL(url);
     });
+    // The modal is tall; a fresh preview often lands below the fold — bring it in.
+    try { preview.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (_) {}
   };
 
   const handleFile = async (file) => {
-    if (!file || !/^image\/(jpeg|png|webp)$/.test(file.type)) return;
+    if (!file) return;
+    clearFieldError(fileErr, drop);
+    // Client-side pre-check (server also enforces image_unsupported_type / image_too_large).
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) {
+      showFieldError(fileErr, drop, t('err_img_type'));
+      return;
+    }
+    if (file.size > MAX_UPLOAD_MB * 1024 * 1024) {
+      showFieldError(fileErr, drop, t('err_img_size', { n: MAX_UPLOAD_MB }));
+      return;
+    }
+    drop.classList.add('busy');
+    drop.innerHTML = `<span class="mini-spin" aria-hidden="true"></span>${esc(t('processing'))}`;
     try {
       picked = await resizeImage(file);
       showPreview(picked.blob);
-    } catch (_) { showToast(t('err_generic')); }
+    } catch (_) {
+      showFieldError(fileErr, drop, t('err_img_type'));
+    } finally {
+      drop.classList.remove('busy');
+      drop.innerHTML = dropIdle;
+    }
   };
 
   drop.addEventListener('click', () => fileInput.click());
@@ -1242,16 +1559,21 @@ function showAddWishModal(root, slug) {
   ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('drag'); }));
   drop.addEventListener('drop', e => { if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
 
+  nameInput.addEventListener('input', () => clearFieldError(formErr, nameInput));
+  textInput.addEventListener('input', () => clearFieldError(formErr, textInput));
+
   setTimeout(() => (preset ? textInput : nameInput).focus(), 30);
 
-  card.querySelector('[data-f="cancel"]').addEventListener('click', () => overlay.remove());
+  card.querySelector('[data-f="cancel"]').addEventListener('click', () => close());
 
   sendBtn.addEventListener('click', async () => {
+    clearFieldError(formErr, nameInput);
+    clearFieldError(formErr, textInput);
     const name = nameInput.value.trim();
-    if (!name) { nameInput.focus(); return; }
+    if (!name) { showFieldError(formErr, nameInput, t('err_name_required')); return; }
     const text = textInput.value.trim();
     const gif = gifInput.value.trim();
-    if (!text && !gif && !picked) { showToast(t('err_need_something')); return; }
+    if (!text && !gif && !picked) { showFieldError(formErr, textInput, t('err_need_something')); return; }
     sendBtn.disabled = true;
     sendBtn.textContent = t('uploading');
     try {
@@ -1264,10 +1586,11 @@ function showAddWishModal(root, slug) {
         gif_url: gif || null,
         image_path: imagePath,
       });
-      overlay.remove();
+      close();
       await refreshBoard(root, slug);
     } catch (e) {
-      showToast(e.message);
+      // Inline in the modal (not a viewport-edge toast). Map server code if present.
+      showFieldError(formErr, null, e.message);
       sendBtn.disabled = false;
       sendBtn.textContent = t('send_wish');
     }
@@ -1312,7 +1635,7 @@ async function renderDeliver(root, slug) {
         <a class="font-display" href="#/${esc(slug)}" style="color:var(--muted);font-weight:700;font-size:0.85rem;text-decoration:none">← ${esc(t('back_to_board'))}</a>
       </div>
 
-      <footer class="print-only deliver-colophon">${esc(b.title)} · otkrytka.agentspore.com</footer>
+      <footer class="print-only deliver-colophon">${esc(b.title)} · ${esc(t('brand'))}</footer>
     </main>`;
 
   // Name the saved PDF sensibly after the card, reusing the i18n tab-title wiring.
@@ -1330,12 +1653,15 @@ document.getElementById('app').addEventListener('click', e => {
   const btn = e.target.closest('[data-lang]');
   if (!btn) return;
   state.lang = btn.dataset.lang;
-  localStorage.setItem('otkrytka_lang', state.lang);
+  lsSet('otkrytka_lang', state.lang);
   render();
 });
 
 // ─── Init ────────────────────────────────────────────────────────────────────
 function init() {
+  // Modal state is never persisted, so a normal load starts with no modal.
+  // Tear down any overlay that might have survived in the initial markup.
+  clearAllModals();
   document.documentElement.lang = state.lang;
   render();
   const rerender = () => {
@@ -1347,6 +1673,9 @@ function init() {
   // navigation (back/forward after goHome pushes '/').
   window.addEventListener('hashchange', rerender);
   window.addEventListener('popstate', rerender);
+  // bfcache restore (back/forward) can resurrect a DOM snapshot that still holds
+  // an open modal; e.persisted marks that case. Clear it so no modal reappears.
+  window.addEventListener('pageshow', e => { if (e.persisted) clearAllModals(); });
 }
 
 init();

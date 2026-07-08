@@ -506,6 +506,78 @@ canvas#confetti-canvas {
   .live-pip--reconnecting::before { animation: none !important; }
 }
 
+/* ── Inline form errors (shown inside the modal, next to the field) ── */
+.field-err {
+  font-family: 'Quicksand', system-ui, sans-serif;
+  font-weight: 600; font-size: 0.82rem; line-height: 1.4;
+  color: var(--coral-dark); margin-top: 6px;
+  display: flex; align-items: center; gap: 6px;
+}
+.field-err[hidden] { display: none; }
+.kg-input.invalid, .kg-textarea.invalid, .drop-zone.invalid {
+  border-color: var(--coral);
+  box-shadow: 0 0 0 3px oklch(54% 0.19 8 / 0.15);
+}
+
+/* ── Upload processing spinner (drop zone busy state) ── */
+.drop-zone.busy { cursor: progress; color: var(--muted); }
+.mini-spin {
+  display: inline-block; width: 15px; height: 15px; vertical-align: -2px;
+  border: 2px solid var(--sand-deep); border-top-color: var(--coral);
+  border-radius: 50%; animation: mini-spin 700ms linear infinite; margin-right: 6px;
+}
+@keyframes mini-spin { to { transform: rotate(360deg); } }
+
+/* ── Organizer-link recovery: banner + created-modal helpers ── */
+.org-banner {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  background: var(--amber-light); border: 2px solid var(--amber);
+  border-radius: var(--radius-lg); padding: 12px 16px; box-shadow: var(--shadow-soft);
+}
+.org-banner .org-banner-text {
+  flex: 1; min-width: 180px;
+  font-family: 'Quicksand', system-ui, sans-serif; font-weight: 700;
+  font-size: 0.86rem; color: var(--ink); line-height: 1.35;
+}
+.org-banner-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.org-mini-btn {
+  font-family: 'Quicksand', system-ui, sans-serif; font-weight: 700; font-size: 0.8rem;
+  background: var(--surface); color: var(--ink);
+  border: 2px solid var(--amber); border-radius: var(--radius-md);
+  padding: 6px 12px; cursor: pointer; white-space: nowrap;
+  transition: background 120ms;
+}
+.org-mini-btn:hover { background: var(--amber-light); }
+.org-banner-close {
+  background: transparent; border: none; cursor: pointer;
+  color: var(--gold-deep); font-weight: 700; font-size: 1rem;
+  padding: 2px 6px; border-radius: 8px; line-height: 1;
+}
+
+/* Prominent "only way to manage" callout in the created modal */
+.manage-callout {
+  background: var(--amber-light); border: 2px solid var(--amber);
+  border-radius: var(--radius-md); padding: 12px 14px;
+  font-family: 'Quicksand', system-ui, sans-serif; font-weight: 700;
+  font-size: 0.86rem; color: var(--ink); line-height: 1.4;
+  display: flex; align-items: flex-start; gap: 8px;
+}
+.link-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.ack-row {
+  display: flex; align-items: flex-start; gap: 10px;
+  font-family: 'Quicksand', system-ui, sans-serif; font-weight: 600;
+  font-size: 0.86rem; color: var(--ink); line-height: 1.35; cursor: pointer;
+}
+.ack-row input { width: 20px; height: 20px; margin-top: 1px; flex-shrink: 0; accent-color: var(--coral-dark); cursor: pointer; }
+.qr-inline { display: flex; justify-content: center; margin-top: 4px; }
+.qr-inline > div, .qr-inline canvas, .qr-inline img { border-radius: 8px; }
+
+/* ── Icon-only back link on narrow board headers (no awkward wrap at 375) ── */
+.nav-back { display: inline-flex; align-items: center; gap: 6px; }
+@media (max-width: 400px) {
+  .nav-back .nav-label { display: none; }
+}
+
 /* ── Print / Save-as-PDF — the delivery card becomes a clean keepsake ──
    Browser "Print → Save as PDF" is the deliverable (no server PDF library).
    Warm identity kept, but ink goes legible-dark on light paper. */

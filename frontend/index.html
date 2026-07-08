@@ -3,6 +3,30 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <!-- Content-Security-Policy (buildless-safe). Restricts where scripts/styles/
+       images may come from so a compromised third-party host cannot inject code
+       that reads the organizer token from localStorage.
+       Loosened directives (each required by this buildless SPA, noted here):
+         script-src 'unsafe-eval'   — the Tailwind Play CDN (cdn.tailwindcss.com)
+                                       compiles utility classes at runtime via
+                                       Function(); it will not run without it.
+         script-src 'unsafe-inline' — the per-board <script> that GET /c/{slug}
+                                       injects to expose window.__CANONICAL__ has
+                                       variable content (no stable hash/nonce is
+                                       available in a buildless deploy), and the
+                                       inline tailwind.config block above.
+         style-src  'unsafe-inline' — Tailwind injects a runtime <style> and the
+                                       SPA uses inline style="" attributes.
+       RESIDUAL RISK: cdn.tailwindcss.com is UNVERSIONED, so it cannot carry an
+       integrity= hash — a compromised Tailwind CDN could still run script. This
+       is accepted for the buildless model; self-hosting Tailwind (a build step)
+       is the only full fix and is out of scope here. The two VERSIONED CDN
+       scripts (confetti, qrcode) are pinned + SRI-guarded below.
+       NOTE: this CSP restricts the ORIGIN of remote scripts only. With
+       script-src 'unsafe-inline' it does NOT mitigate DOM-XSS from injected
+       inline markup; the app's defense against that stays esc() on every
+       user-controlled value at render time. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-src 'self'; form-action 'self'">
   <title>Открытка · Тёплые слова вскладчину</title>
   <meta name="description" content="Соберите тёплые слова и фото для того, кто дорог. Одна ссылка, без регистрации.">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%92%8C%3C/text%3E%3C/svg%3E">
@@ -61,9 +85,11 @@
 </head>
 <body class="font-body bg-cream text-ink min-h-screen">
   <div id="app"></div>
-  <!-- CDNs -->
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <!-- CDNs — versioned + Subresource-Integrity guarded (sha384 of the exact
+       pinned file). A compromised jsDelivr response with different bytes is
+       rejected by the browser, so it cannot exfiltrate the organizer token. -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js" integrity="sha384-Rv68Y7adOjMMJc1/xFMcdNvXre/HF51to4GZjBALmXr7ABnVl5V4UajJwBu7zbhN" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js" integrity="sha384-3zSEDfvllQohrq0PHL1fOXJuC/jSOO34H46t6UQfobFOmxE5BpjjaIJY5F2/bMnU" crossorigin="anonymous"></script>
   <script src="/app.js" defer></script>
 </body>
 </html>

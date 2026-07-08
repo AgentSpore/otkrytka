@@ -217,6 +217,12 @@ class OembedForeignError(ValueError):
     """The url= host is not ours, or the path is not a card/embed URL -> 404."""
 
 
+class OembedNotFoundError(ValueError):
+    """The url is a well-formed card URL on our host but the slug does not resolve
+    to a live board (unknown or soft-deleted) -> 404, so an embedder cannot
+    publish a dead card as a valid oEmbed."""
+
+
 class OembedNotConfiguredError(RuntimeError):
     """canonical_base_url is unset, so the foreign-host check has no trusted
     reference -> fail closed (500) rather than trust the spoofable
@@ -263,6 +269,10 @@ async def render_oembed(
     width = min(_OEMBED_W, maxwidth) if maxwidth and maxwidth > 0 else _OEMBED_W
     height = min(_OEMBED_H, maxheight) if maxheight and maxheight > 0 else _OEMBED_H
     board = await _board_for_og(db, slug)
+    if board is None:
+        # Well-formed card URL but the slug is unknown/deleted: 404 so embedders
+        # cannot publish a dead card. (/c/{slug} still serves the SPA shell 200.)
+        raise OembedNotFoundError("unknown slug")
     return _oembed_payload(board, slug, canonical, width, height)
 
 

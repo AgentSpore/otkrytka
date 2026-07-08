@@ -1,6 +1,24 @@
 """End-to-end API tests against the ASGI app via httpx AsyncClient."""
 
+import io
+
 import pytest
+from PIL import Image
+
+
+def _jpeg_bytes(size=(64, 64)) -> bytes:
+    buf = io.BytesIO()
+    Image.new("RGB", size, (200, 120, 90)).save(buf, format="JPEG")
+    return buf.getvalue()
+
+
+async def _upload_image(client, slug) -> str:
+    res = await client.post(
+        f"/api/v1/boards/{slug}/upload",
+        files={"file": ("photo.jpg", _jpeg_bytes(), "image/jpeg")},
+    )
+    assert res.status_code == 200
+    return res.json()["image_path"]
 
 
 async def _make_board(client, title="С днём рождения, Аня!", recipient="Аня", cover="🎂"):
@@ -68,12 +86,13 @@ async def test_add_card_with_gif(client):
 @pytest.mark.asyncio
 async def test_add_card_with_image_path(client):
     slug, _ = await _make_board(client)
+    image_path = await _upload_image(client, slug)
     res = await client.post(
         f"/api/v1/boards/{slug}/cards",
-        json={"author_name": "Лев", "image_path": "/uploads/abc123.jpg"},
+        json={"author_name": "Лев", "image_path": image_path},
     )
     assert res.status_code == 200
-    assert res.json()["image_path"] == "/uploads/abc123.jpg"
+    assert res.json()["image_path"] == image_path
 
 
 @pytest.mark.asyncio
