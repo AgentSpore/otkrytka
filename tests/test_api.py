@@ -54,6 +54,41 @@ async def test_unknown_board_is_404(client):
 
 
 @pytest.mark.asyncio
+async def test_unknown_top_level_route_serves_spa(client):
+    # An arbitrary unknown top-level path returns the SPA shell (200 HTML), not a
+    # raw {"detail":"Not Found"} JSON, so the client router shows its own
+    # localized not-found instead of leaking the framework error.
+    res = await client.get("/totally-bogus")
+    assert res.status_code == 200
+    assert res.headers["content-type"].startswith("text/html")
+    assert "<div id=\"app\">" in res.text
+
+
+@pytest.mark.asyncio
+async def test_unknown_api_path_still_json_404(client):
+    # The SPA fallback must not shadow the API: an unknown /api path stays a JSON
+    # 404 so clients keep getting a machine-readable error.
+    res = await client.get("/api/v1/does-not-exist")
+    assert res.status_code == 404
+    assert res.headers["content-type"].startswith("application/json")
+
+
+@pytest.mark.asyncio
+async def test_health_still_ok(client):
+    res = await client.get("/health")
+    assert res.status_code == 200
+    assert res.json() == {"status": "ok"}
+
+
+@pytest.mark.asyncio
+async def test_missing_static_asset_still_404(client):
+    # A missing file with an extension stays a real 404 (not the SPA shell), so a
+    # broken asset reference is not masked as HTML.
+    res = await client.get("/nope.js")
+    assert res.status_code == 404
+
+
+@pytest.mark.asyncio
 async def test_add_cards_and_ordering(client):
     slug, _ = await _make_board(client)
     c1 = (await client.post(

@@ -20,13 +20,14 @@
        RESIDUAL RISK: cdn.tailwindcss.com is UNVERSIONED, so it cannot carry an
        integrity= hash — a compromised Tailwind CDN could still run script. This
        is accepted for the buildless model; self-hosting Tailwind (a build step)
-       is the only full fix and is out of scope here. The two VERSIONED CDN
-       scripts (confetti, qrcode) are pinned + SRI-guarded below.
+       is the only full fix and is out of scope here. The two versioned libraries
+       (confetti, qrcode) are now vendored + served same-origin from /vendor, so
+       jsDelivr is dropped from script-src entirely.
        NOTE: this CSP restricts the ORIGIN of remote scripts only. With
        script-src 'unsafe-inline' it does NOT mitigate DOM-XSS from injected
        inline markup; the app's defense against that stays esc() on every
        user-controlled value at render time. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-src 'self'; form-action 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-src 'self'; form-action 'self'">
   <title>Открытка · Тёплые слова вскладчину</title>
   <meta name="description" content="Соберите тёплые слова и фото для того, кто дорог. Одна ссылка, без регистрации.">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%92%8C%3C/text%3E%3C/svg%3E">
@@ -52,7 +53,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <!-- Tailwind CDN with festive-gift OKLCH config -->
+  <!-- Tailwind CDN with festive-gift OKLCH config. The CDN script MUST load
+       BEFORE the inline tailwind.config below: the config assigns to the global
+       `tailwind` object that the CDN script defines, so running it first threw
+       `ReferenceError: tailwind is not defined`. -->
+  <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       theme: {
@@ -80,16 +85,17 @@
       }
     }
   </script>
-  <script src="https://cdn.tailwindcss.com"></script>
   <link href="/styles.css" rel="stylesheet">
 </head>
 <body class="font-body bg-cream text-ink min-h-screen">
   <div id="app"></div>
-  <!-- CDNs — versioned + Subresource-Integrity guarded (sha384 of the exact
-       pinned file). A compromised jsDelivr response with different bytes is
-       rejected by the browser, so it cannot exfiltrate the organizer token. -->
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js" integrity="sha384-Rv68Y7adOjMMJc1/xFMcdNvXre/HF51to4GZjBALmXr7ABnVl5V4UajJwBu7zbhN" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js" integrity="sha384-3zSEDfvllQohrq0PHL1fOXJuC/jSOO34H46t6UQfobFOmxE5BpjjaIJY5F2/bMnU" crossorigin="anonymous"></script>
+  <!-- Vendored, version-pinned libraries served from our own origin
+       (frontend/vendor/, mounted at /vendor). canvas-confetti@1.9.3 and
+       qrcodejs@1.0.0 — self-hosting removes the jsDelivr dependency entirely, so
+       no third-party script origin can serve code into this page. Because they
+       are same-origin now, integrity=/crossorigin= are no longer needed. -->
+  <script src="/vendor/confetti.browser.min.js"></script>
+  <script src="/vendor/qrcode.min.js"></script>
   <script src="/app.js" defer></script>
 </body>
 </html>

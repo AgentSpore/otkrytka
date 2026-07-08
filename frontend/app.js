@@ -83,7 +83,10 @@ const STR = {
     delete_board: "Delete this card",
     board_deleted: "Card deleted.",
     undo_btn: "Undo",
-    wishes_count: "{n} wishes",
+    del_confirm_btn: "Delete",
+    confirm_title: "Are you sure?",
+    wishes_count_one: "{n} wish",
+    wishes_count_other: "{n} wishes",
 
     // Add-wish modal
     add_modal_title: "Add your wish",
@@ -125,8 +128,8 @@ const STR = {
     loading: "Loading…",
     err_not_found: "Card not found.",
     err_generic: "Something went wrong.",
-    confirm_delete_board: "Delete this card for everyone?",
-    confirm_delete_card: "Remove this wish?",
+    confirm_delete_board: "Hide this card from everyone? You can restore it right after.",
+    confirm_delete_card: "Remove this wish and its photo? You cannot undo this.",
 
     // Inline validation + upload feedback
     err_name_required: "Add your name first.",
@@ -252,7 +255,11 @@ const STR = {
     delete_board: "Удалить открытку",
     board_deleted: "Открытка удалена.",
     undo_btn: "Отменить",
-    wishes_count: "{n} пожеланий",
+    del_confirm_btn: "Удалить",
+    confirm_title: "Вы уверены?",
+    wishes_count_one: "{n} пожелание",
+    wishes_count_few: "{n} пожелания",
+    wishes_count_many: "{n} пожеланий",
 
     // Add-wish modal
     add_modal_title: "Ваше пожелание",
@@ -294,8 +301,8 @@ const STR = {
     loading: "Загрузка…",
     err_not_found: "Открытка не найдена.",
     err_generic: "Что-то пошло не так.",
-    confirm_delete_board: "Удалить открытку для всех?",
-    confirm_delete_card: "Убрать это пожелание?",
+    confirm_delete_board: "Скрыть открытку от всех? Сразу после этого её можно вернуть.",
+    confirm_delete_card: "Убрать это пожелание вместе с фото? Отменить это нельзя.",
 
     // Inline validation + upload feedback
     err_name_required: "Сначала укажите имя.",
@@ -507,6 +514,24 @@ function t(key, vars) {
   let s = dict[key] !== undefined ? dict[key] : (STR.en[key] !== undefined ? STR.en[key] : key);
   if (vars) s = s.replace(/\{(\w+)\}/g, (_, k) => (vars[k] !== undefined ? vars[k] : ''));
   return s;
+}
+
+/** Grammatically correct "{n} wishes" for RU (one/few/many) and EN (one/other).
+ *  RU uses the standard Slavic plural rule: 1/21/31 -> one (пожелание),
+ *  2..4/22..24 -> few (пожелания), 0/5..20/25.. -> many (пожеланий). */
+function pluralWishes(n) {
+  n = Math.abs(Number(n) || 0);
+  let key;
+  if (state.lang === 'ru') {
+    const mod10 = n % 10;
+    const mod100 = n % 100;
+    if (mod10 === 1 && mod100 !== 11) key = 'wishes_count_one';
+    else if (mod10 >= 2 && mod10 <= 4 && !(mod100 >= 12 && mod100 <= 14)) key = 'wishes_count_few';
+    else key = 'wishes_count_many';
+  } else {
+    key = n === 1 ? 'wishes_count_one' : 'wishes_count_other';
+  }
+  return t(key, { n });
 }
 
 // ─── API helpers ─────────────────────────────────────────────────────────────
@@ -735,6 +760,31 @@ function openModal(innerHtml, opts) {
   document.addEventListener('keydown', onKey);
   _activeModal = { id, overlay, card, close, onKey, onDismiss };
   return { overlay, card, close };
+}
+
+// ─── Confirm modal (styled replacement for native window.confirm) ────────────
+// Resolves true if the user confirms, false on cancel / dismiss / Escape. Uses
+// the same single-modal manager as every other dialog so all confirmations share
+// one consistent, localized look instead of the browser's native confirm().
+function showConfirmModal(message, opts) {
+  const o = opts || {};
+  const confirmLabel = o.confirmLabel || t('del_confirm_btn');
+  return new Promise(resolve => {
+    let settled = false;
+    const finish = (val) => { if (!settled) { settled = true; resolve(val); } };
+    const { card, close } = openModal(`
+      <h2 class="modal-title">${esc(o.title || t('confirm_title'))}</h2>
+      <p style="color:var(--muted);margin:0 0 4px;line-height:1.5">${esc(message)}</p>
+      <div class="flex gap-2" style="margin-top:18px">
+        <button class="flex-1 py-3 rounded-2xl border-2 font-body btn-press-sm" style="border-color:var(--sand-deep);color:var(--muted);font-weight:700" data-action="cancel">${esc(t('cancel_btn'))}</button>
+        <button class="flex-1 py-3 rounded-2xl font-body btn-press" style="background:var(--coral-dark);color:var(--surface);font-weight:700" data-action="confirm">${esc(confirmLabel)}</button>
+      </div>`, { onDismiss: () => finish(false) });
+    const doConfirm = () => { finish(true); close(); };
+    const doCancel = () => { finish(false); close(); };
+    card.querySelector('[data-action="confirm"]').addEventListener('click', doConfirm);
+    card.querySelector('[data-action="cancel"]').addEventListener('click', doCancel);
+    setTimeout(() => { try { card.querySelector('[data-action="confirm"]').focus(); } catch (_) {} }, 30);
+  });
 }
 
 // ─── Name modal (set/change the signer name for this card) ───────────────────
@@ -1329,7 +1379,7 @@ function wireBoard(root, slug) {
 
   root.querySelectorAll('[data-del-card]').forEach(btn => {
     btn.addEventListener('click', async () => {
-      if (!confirm(t('confirm_delete_card'))) return;
+      if (!await showConfirmModal(t('confirm_delete_card'))) return;
       try {
         await api.del(`/api/v1/cards/${btn.dataset.delCard}`, { organizer_token: token });
         await refreshBoard(root, slug);
@@ -1352,7 +1402,7 @@ function wireBoard(root, slug) {
 
   root.querySelectorAll('[data-del-board]').forEach(btn => {
     btn.addEventListener('click', async () => {
-      if (!confirm(t('confirm_delete_board'))) return;
+      if (!await showConfirmModal(t('confirm_delete_board'))) return;
       const boardId = btn.dataset.delBoard;
       try {
         await api.del(`/api/v1/boards/${boardId}`, { organizer_token: token });
@@ -1621,7 +1671,7 @@ async function renderDeliver(root, slug) {
         <div class="hero-reveal-1"><span class="cover-badge big">${esc(b.cover || '💌')}</span></div>
         ${b.recipient ? `<p class="hero-reveal-2 font-display" style="color:var(--coral);font-weight:800;margin-top:14px;font-size:1.05rem">${esc(t('deliver_intro'))} ${esc(b.recipient)}</p>` : ''}
         <h1 class="hero-reveal-2 font-display" style="font-weight:900;font-size:clamp(1.9rem,5vw,3rem);color:var(--ink);letter-spacing:-0.02em;margin-top:6px">${esc(b.title)}</h1>
-        <p class="hero-reveal-3" style="color:var(--muted);margin-top:10px">${esc(t('wishes_count', { n: b.cards.length }))}</p>
+        <p class="hero-reveal-3" style="color:var(--muted);margin-top:10px">${esc(pluralWishes(b.cards.length))}</p>
       </div>
 
       <div class="hero-reveal-4" style="margin-top:32px">

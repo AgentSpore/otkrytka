@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from .api import boards, pages
 from .core.config import get_settings
@@ -12,6 +13,65 @@ from .core.db import init_db
 from .core.limits import BodySizeLimitMiddleware
 
 logger = logging.getLogger(__name__)
+
+# Prefixes that must keep their native 404 (JSON for API paths, plain 404 for
+# missing assets) instead of falling back to the SPA shell. Everything else that
+# is extensionless and unknown is treated as a client-side SPA route.
+_SPA_RESERVED_PREFIXES = (
+    "api/",
+    "uploads/",
+    "vendor/",
+    "og/",
+    "c/",
+    "embed",
+    "oembed",
+    "health",
+)
+
+
+def _is_spa_route(path: str) -> bool:
+    """True for a clean, unknown top-level path that the SPA router should own.
+
+    Excludes API/asset/page prefixes (so their 404s stay untouched) and any path
+    whose last segment carries a file extension (a genuinely missing static asset
+    stays a real 404 rather than silently returning HTML).
+    """
+    if path.startswith(_SPA_RESERVED_PREFIXES):
+        return False
+    return "." not in path.rsplit("/", 1)[-1]
+
+
+class SPAStaticFiles(StaticFiles):
+    """StaticFiles that serves index.html for unknown extensionless GET paths.
+
+    Real files are served as-is; unknown SPA routes (e.g. ``/totally-bogus``)
+    return the app shell so the client router can render its own localized
+    not-found instead of leaking a raw ``{"detail":"Not Found"}`` JSON body.
+    Unknown API paths and missing assets keep their native 404 (see
+    ``_is_spa_route``). Registered last, so API routers and page routes above it
+    are never shadowed.
+    """
+
+    async def get_response(self, path, scope):
+        try:
+            return await super().get_response(path, scope)
+        except StarletteHTTPException as exc:
+            if exc.status_code == 404 and _is_spa_route(path):
+                return await super().get_response("index.html", scope)
+            raise
+
+# Deliberately scoped deferrals for this first release (explicit, not oversights):
+#   - Rate limiting is enforced at the Caddy edge for otkrytka.agentspore.com
+#     (ratelimit_post + ratelimit_badua); no app-level limiter is added here.
+#   - Tailwind Play CDN (cdn.tailwindcss.com) stays as a documented residual: it is
+#     unversioned so it cannot carry an SRI hash; self-hosting Tailwind needs a
+#     build step, which is out of scope for the buildless model. The versioned libs
+#     (confetti, qrcode) are vendored same-origin under /vendor.
+#   - Automated Playwright / a11y / mobile / print coverage is deferred; a11y and
+#     mobile were verified manually against the live deploy.
+#   - Moderation, backups, export and retention are product decisions deferred for a
+#     first release; card delete is a genuine hard delete, board delete is a soft
+#     delete with restore (see the honest UI copy in the frontend).
 
 
 @asynccontextmanager
@@ -59,5 +119,6 @@ os.makedirs(settings.upload_dir, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=settings.upload_dir), name="uploads")
 
 # Mount the buildless frontend LAST (after all routers, /health and /uploads) so
-# it does not shadow the API. html=True serves index.html at '/'.
-app.mount("/", StaticFiles(directory=settings.frontend_dir, html=True), name="frontend")
+# it does not shadow the API. html=True serves index.html at '/'; SPAStaticFiles
+# adds the catch-all that serves index.html for unknown extensionless routes.
+app.mount("/", SPAStaticFiles(directory=settings.frontend_dir, html=True), name="frontend")
