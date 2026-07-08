@@ -505,3 +505,63 @@ canvas#confetti-canvas {
   .btn-press:active, .btn-press-sm:active { transform: none !important; }
   .live-pip--reconnecting::before { animation: none !important; }
 }
+
+/* ── Print / Save-as-PDF — the delivery card becomes a clean keepsake ──
+   Browser "Print → Save as PDF" is the deliverable (no server PDF library).
+   Warm identity kept, but ink goes legible-dark on light paper. */
+.print-only { display: none; }
+
+@media print {
+  /* A4/Letter friendly margins; running colophon lives inside them. */
+  @page { margin: 16mm; }
+
+  /* Render the warm tints/photos faithfully instead of dropping them. */
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  html, body { background: #ffffff; }
+  body { color: var(--ink); }
+
+  /* Interactive chrome + festive extras have no place on paper. */
+  .no-print,
+  #confetti-canvas,
+  .toast,
+  .live-pip,
+  .modal-overlay,
+  .lang-btn { display: none !important; }
+
+  /* Decorative page blobs / entrance animations off for a still print. */
+  .hero-blobs::before, .hero-blobs::after { display: none !important; }
+  .hero-reveal-1, .hero-reveal-2, .hero-reveal-3, .hero-reveal-4 { animation: none !important; opacity: 1 !important; }
+  .wish.enter { animation: none !important; }
+
+  /* Let the card fill the printable width. */
+  .deliver-view { max-width: none !important; margin: 0 !important; padding: 0 !important; }
+  .deliver-head { max-width: none !important; margin-bottom: 18px !important; }
+  .cover-badge.big { box-shadow: none !important; }
+
+  /* Two-up keepsake layout; never slice a note across a page. */
+  .deliver-view .masonry { column-count: 2 !important; column-gap: 12px; }
+  .deliver-view .wish {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    box-shadow: none !important;
+    transform: none !important;
+    border-color: var(--sand-deep);
+  }
+  .deliver-view .wish.pinned { transform: none !important; }
+  .wish-media img { max-width: 100%; }
+
+  /* Colophon repeated at the foot of every printed page. */
+  .print-only { display: block !important; }
+  .deliver-colophon {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-family: 'Quicksand', system-ui, sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--muted);
+  }
+}

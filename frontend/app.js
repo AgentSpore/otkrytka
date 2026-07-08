@@ -117,6 +117,7 @@ const STR = {
     // Delivery
     deliver_intro: "For you,",
     back_to_board: "Back to the card",
+    download_pdf: "Download PDF",
 
     // Status / live / errors
     ws_live: "Live",
@@ -241,6 +242,7 @@ const STR = {
     // Delivery
     deliver_intro: "Для тебя,",
     back_to_board: "Вернуться к открытке",
+    download_pdf: "Скачать PDF",
 
     // Status / live / errors
     ws_live: "Вживую",
@@ -1291,8 +1293,8 @@ async function renderDeliver(root, slug) {
   }
 
   root.innerHTML = `
-    <main class="hero-blobs" style="max-width:1000px;margin:0 auto;padding:40px 6vw 90px">
-      <div style="text-align:center;max-width:640px;margin:0 auto">
+    <main class="hero-blobs deliver-view" style="max-width:1000px;margin:0 auto;padding:40px 6vw 90px">
+      <div class="deliver-head" style="text-align:center;max-width:640px;margin:0 auto">
         <div class="hero-reveal-1"><span class="cover-badge big">${esc(b.cover || '💌')}</span></div>
         ${b.recipient ? `<p class="hero-reveal-2 font-display" style="color:var(--coral);font-weight:800;margin-top:14px;font-size:1.05rem">${esc(t('deliver_intro'))} ${esc(b.recipient)}</p>` : ''}
         <h1 class="hero-reveal-2 font-display" style="font-weight:900;font-size:clamp(1.9rem,5vw,3rem);color:var(--ink);letter-spacing:-0.02em;margin-top:6px">${esc(b.title)}</h1>
@@ -1305,10 +1307,18 @@ async function renderDeliver(root, slug) {
           : `<div class="masonry">${b.cards.map(c => wishHtml(c, false, false)).join('')}</div>`}
       </div>
 
-      <div style="text-align:center;margin-top:36px">
+      <div class="no-print" style="text-align:center;margin-top:36px;display:flex;gap:16px;justify-content:center;align-items:center;flex-wrap:wrap">
+        <button id="deliver-print" class="btn-soft btn-press-sm">🖨 ${esc(t('download_pdf'))}</button>
         <a class="font-display" href="#/${esc(slug)}" style="color:var(--muted);font-weight:700;font-size:0.85rem;text-decoration:none">← ${esc(t('back_to_board'))}</a>
       </div>
+
+      <footer class="print-only deliver-colophon">${esc(b.title)} · otkrytka.agentspore.com</footer>
     </main>`;
+
+  // Name the saved PDF sensibly after the card, reusing the i18n tab-title wiring.
+  document.title = b.title || t('doc_title');
+  const printBtn = root.querySelector('#deliver-print');
+  if (printBtn) printBtn.addEventListener('click', () => window.print());
 
   fireConfetti();
 }
