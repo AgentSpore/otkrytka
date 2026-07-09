@@ -882,7 +882,11 @@ function parseRoute() {
   if (em) return { view: 'embed', slug: em[1].toLowerCase() };
   const m = location.pathname.match(/^\/c\/([a-z0-9]+)\/?$/i);
   if (m) return { view: 'board', slug: m[1].toLowerCase() };
-  return { view: 'landing' };
+  // Root path -> home. Any OTHER non-root pathname that reached the SPA (served
+  // index.html by the backend catch-all, e.g. /totally-bogus) is an unknown
+  // route -> render the localized not-found instead of silently showing home.
+  if (location.pathname === '/' || location.pathname === '') return { view: 'landing' };
+  return { view: 'notfound' };
 }
 function goTo(hash) { location.hash = hash; }
 /** Navigate to the landing at the real root, clearing any `/c/{slug}` path. */
@@ -906,7 +910,10 @@ async function render() {
     return;
   }
   state.embed = route.view === 'embed';
-  if (route.view === 'landing') {
+  if (route.view === 'notfound') {
+    state.slug = '';
+    renderNotFound(root);
+  } else if (route.view === 'landing') {
     state.slug = '';
     renderLanding(root);
   } else if (route.view === 'deliver') {
@@ -1170,6 +1177,19 @@ function showImportModal(knownSlug) {
     showToast(t('import_done'), 2200);
     goTo(`#/${parsed.slug}`);
   });
+}
+
+/** Localized styled not-found for an unknown top-level path (e.g. /totally-bogus).
+ *  Mirrors the board-not-found view: the same "Card not found" copy + Home CTA. */
+function renderNotFound(root) {
+  wsClose();
+  state.board = null;
+  root.innerHTML = `
+    <div style="max-width:520px;margin:80px auto;text-align:center;padding:0 6vw">
+      <p class="font-display" style="font-size:1.2rem;font-weight:800;color:var(--ink)">${esc(t('err_not_found'))}</p>
+      <button id="go-home" class="cta-hero" style="margin-top:20px">💌 ${esc(t('home_link'))}</button>
+    </div>`;
+  root.querySelector('#go-home').addEventListener('click', () => goHome());
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
