@@ -350,7 +350,7 @@ const STR = {
   },
 };
 
-const MAX_UPLOAD_MB = 10; // client-side pre-check; server also enforces (image_too_large)
+const MAX_UPLOAD_MB = 3; // matches backend max_upload_mb (config.py); checked on the POST-RESIZE bytes
 
 const COVERS = ['🎂', '🎉', '💐', '🌸', '❤️', '🎁', '✨', '🥳', '🌟', '🎈'];
 
@@ -1586,14 +1586,20 @@ function showAddWishModal(root, slug) {
       showFieldError(fileErr, drop, t('err_img_type'));
       return;
     }
-    if (file.size > MAX_UPLOAD_MB * 1024 * 1024) {
-      showFieldError(fileErr, drop, t('err_img_size', { n: MAX_UPLOAD_MB }));
-      return;
-    }
     drop.classList.add('busy');
     drop.innerHTML = `<span class="mini-spin" aria-hidden="true"></span>${esc(t('processing'))}`;
     try {
-      picked = await resizeImage(file);
+      // Resize first, then size-check the ACTUAL bytes that will be uploaded
+      // (the re-encoded blob), not the original file. A large original that
+      // shrinks under the cap is accepted; the cap matches the backend so a
+      // client-side pass can no longer be rejected by a server 413.
+      const resized = await resizeImage(file);
+      if (resized.blob.size > MAX_UPLOAD_MB * 1024 * 1024) {
+        picked = null;
+        showFieldError(fileErr, drop, t('err_img_size', { n: MAX_UPLOAD_MB }));
+        return;
+      }
+      picked = resized;
       showPreview(picked.blob);
     } catch (_) {
       showFieldError(fileErr, drop, t('err_img_type'));
