@@ -13,6 +13,8 @@ services:
       OTKRYTKA_UPLOAD_DIR: /data/uploads
       # Public canonical origin: used for og:url/og:image and oEmbed (override per deploy)
       OTKRYTKA_CANONICAL_BASE_URL: ${OTKRYTKA_CANONICAL_BASE_URL:-https://otkrytka.agentspore.com}
+      # Production env: activates the fail-closed canonical-URL startup guard.
+      OTKRYTKA_ENV: ${OTKRYTKA_ENV:-production}
     volumes:
       - otkrytka-data:/data
 
