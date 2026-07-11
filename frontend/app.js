@@ -1761,116 +1761,117 @@ async function exportDeliverPdf(target, title) {
     return _printFallback();
   }
   // --- Temporary, capture-only style mutations (ALL restored in finally) -------
-  // FIX 1: the .print-only colophon is display:none outside @media print, so
+  // FIX: the .print-only colophon is display:none outside @media print, so
   // html2canvas (which reads computed styles for SCREEN media) would omit the
   // branding footer that the native print() fallback shows. Force it visible.
   const colophon = target.querySelector('.print-only');
   const colophonDisplay = colophon ? colophon.style.display : null;
   if (colophon) colophon.style.display = 'block';
 
-  // DEFECT 1a: .masonry is a CSS multi-column layout (column-count 2/3), so ANY
-  // horizontal page cut splits a card in some column. Collapse it to a SINGLE
-  // column on the LIVE node so the measured card geometry matches what
-  // html2canvas renders, then we can paginate on real card boundaries.
+  // Collapse the CSS multi-column masonry to ONE column on the live node so each
+  // .wish renders at (near) full content width — captured directly it then yields
+  // crisp, non-reflowed text instead of a narrow column bitmap scaled up.
   const masonry = target.querySelector('.masonry');
   const masonryCol = masonry ? masonry.style.getPropertyValue('column-count') : null;
   const masonryColPrio = masonry ? masonry.style.getPropertyPriority('column-count') : '';
   if (masonry) masonry.style.setProperty('column-count', '1', 'important');
 
-  // DEFECT 2: the real page background is a themed oklch gradient/texture (body
-  // background-image + .hero-blobs), not a flat colour. Paint the live target
-  // with the body's full background shorthand and let html2canvas capture it
-  // (backgroundColor:null below) instead of a washed-out flat fill.
-  const targetBg = target.style.background;
-  target.style.background = getComputedStyle(document.body).background;
+  // Shared html2canvas options — reused for EVERY per-block capture. onclone runs
+  // per capture and (a) force-settles the entrance animations that start at
+  // opacity:0 (else title/wish text vanish) and (b) swaps un-loadable cross-origin
+  // images for a neutral placeholder. backgroundColor:null keeps each card's own
+  // coral/amber gradient (composited over the page tint below).
+  const h2cOpts = {
+    backgroundColor: null,
+    scale: Math.min(2, window.devicePixelRatio || 1),
+    useCORS: true,
+    ignoreElements: (el) => el.classList && el.classList.contains('no-print'),
+    onclone: (clonedDoc) => {
+      const settle = clonedDoc.createElement('style');
+      settle.textContent =
+        '.hero-reveal-1,.hero-reveal-2,.hero-reveal-3,.hero-reveal-4,.wish,.wish.enter{' +
+        'animation:none !important;opacity:1 !important;transform:none !important;}';
+      clonedDoc.head.appendChild(settle);
+      const scope = clonedDoc.querySelector('.deliver-view') || clonedDoc.body;
+      scope.querySelectorAll('img').forEach((img) => {
+        if (img.complete && img.naturalWidth > 0) return;
+        const ph = clonedDoc.createElement('div');
+        ph.textContent = img.getAttribute('alt') || '🖼';
+        ph.style.cssText =
+          'display:flex;align-items:center;justify-content:center;min-height:120px;' +
+          'padding:16px;border:2px dashed rgba(0,0,0,0.18);border-radius:16px;' +
+          'color:rgba(0,0,0,0.45);font-size:0.85rem;text-align:center;word-break:break-word';
+        if (img.parentNode) img.parentNode.replaceChild(ph, img);
+      });
+    },
+  };
 
   try {
-    // Reflow after the single-column + colophon mutations, then measure each
-    // card's bottom edge relative to the capture target's top (CSS px, ascending).
-    void target.offsetHeight;
-    const targetTop = target.getBoundingClientRect().top;
-    const wishBottomsCss = Array.from(target.querySelectorAll('.wish'))
-      .map((w) => w.getBoundingClientRect().bottom - targetTop)
-      .filter((y) => y > 0)
-      .sort((a, b) => a - b);
+    void target.offsetHeight; // reflow after the single-column + colophon mutations
 
-    const canvas = await window.html2canvas(target, {
-      backgroundColor: null, // capture the target's real (now themed) background
-      scale: Math.min(2, window.devicePixelRatio || 1),
-      useCORS: true,
-      ignoreElements: (el) => el.classList && el.classList.contains('no-print'),
-      // FIX 2 (images): a wish GIF/image on a non-CORS host fails to load under
-      // useCORS and html2canvas would silently drop it, leaving a blank hole. In
-      // the CLONED doc only (never the live card), swap any un-loadable <img> for
-      // a neutral placeholder box carrying its alt text, keeping the card coherent.
-      onclone: (clonedDoc) => {
-        // The deliver view uses entrance animations (.hero-reveal-1..4 fade-rise,
-        // .wish/.wish.enter wish-pop) that START at opacity:0 and settle to 1 on
-        // screen. html2canvas renders the clone in SCREEN media with animations
-        // RE-STARTED at t=0, so with `both` fill + delays the capture lands at
-        // opacity:0 → title + every wish text vanish. The CSS force-settles these
-        // under @media print, but the clone is screen media, so mirror that rule
-        // here (clone only, live DOM untouched). !important wins the cascade.
-        const settle = clonedDoc.createElement('style');
-        settle.textContent =
-          '.hero-reveal-1,.hero-reveal-2,.hero-reveal-3,.hero-reveal-4,.wish,.wish.enter{' +
-          'animation:none !important;opacity:1 !important;transform:none !important;}';
-        clonedDoc.head.appendChild(settle);
-        const scope = clonedDoc.querySelector('.deliver-view') || clonedDoc.body;
-        scope.querySelectorAll('img').forEach((img) => {
-          if (img.complete && img.naturalWidth > 0) return;
-          const ph = clonedDoc.createElement('div');
-          ph.textContent = img.getAttribute('alt') || '🖼';
-          ph.style.cssText =
-            'display:flex;align-items:center;justify-content:center;min-height:120px;' +
-            'padding:16px;border:2px dashed rgba(0,0,0,0.18);border-radius:16px;' +
-            'color:rgba(0,0,0,0.45);font-size:0.85rem;text-align:center;word-break:break-word';
-          if (img.parentNode) img.parentNode.replaceChild(ph, img);
-        });
-      },
-    });
+    // Blocks in visual order, each an ATOMIC unit that can never be split across a
+    // page: header (icon+recipient+title+count) → each wish → colophon footer.
+    const blocks = [];
+    const head = target.querySelector('.deliver-head');
+    if (head) blocks.push(head);
+    target.querySelectorAll('.wish').forEach((w) => blocks.push(w));
+    if (colophon) blocks.push(colophon);
+
+    // Page tint sampled from the body base colour (cream/peach). Parse rgb() to
+    // numbers: jsPDF.setFillColor needs r,g,b, and the block compositor needs a
+    // css string to paint transparent card corners/margins so they match the page.
+    const bgRaw = getComputedStyle(document.body).backgroundColor || 'rgb(255,255,255)';
+    const bgNums = bgRaw.match(/\d+/g);
+    const r = bgNums ? +bgNums[0] : 255;
+    const g = bgNums ? +bgNums[1] : 255;
+    const b = bgNums ? +bgNums[2] : 255;
+    const bgCss = `rgb(${r}, ${g}, ${b})`;
 
     const pdf = new jspdfNs.jsPDF({ unit: 'pt', format: 'a4' });
     const pageW = pdf.internal.pageSize.getWidth();
     const pageH = pdf.internal.pageSize.getHeight();
-    // canvas px per CSS px, and the canvas px height that fills one PDF page.
-    const ratio = canvas.height / target.scrollHeight;
-    // Guard a degenerate canvas.width (hidden/0-width target) so pageHpx stays
-    // positive — otherwise the paginator can never advance `start` (infinite loop).
-    const pageHpx = canvas.width > 0 ? (pageH * canvas.width) / pageW : canvas.height;
-    // Card-bottom break candidates in canvas px (strictly inside the canvas).
-    const breaks = wishBottomsCss
-      .map((y) => y * ratio)
-      .filter((y) => y > 0 && y < canvas.height);
+    const margin = 28;
+    const gap = 10;
+    const contentW = pageW - 2 * margin;
+    const contentH = pageH - 2 * margin; // usable height for one page
+    const fillPageBg = () => {
+      pdf.setFillColor(r, g, b);
+      pdf.rect(0, 0, pageW, pageH, 'F');
+    };
 
-    // DEFECT 1b: paginate on card boundaries. Each page takes the largest
-    // card-bottom that still fits within one page height, so no wish is split.
-    // Only if a SINGLE card is taller than a full page do we hard-cut (unavoidable).
-    let start = 0;
-    let first = true;
-    // `< canvas.height` (not `- 1`) so the final rows are never dropped.
-    while (start < canvas.height) {
-      let cut = Math.min(start + pageHpx, canvas.height);
-      if (cut < canvas.height) {
-        let best = -1;
-        for (const b of breaks) {
-          if (b > start + 1 && b <= cut) best = b;
-        }
-        if (best > start + 1) cut = best; // else hard-cut at the page height
+    fillPageBg(); // page 1 tint, painted BEFORE any block
+    let cursorY = margin;
+    for (const el of blocks) {
+      const bc = await window.html2canvas(el, h2cOpts);
+      if (!bc.width || !bc.height) continue;
+      // Composite the (transparent-cornered) block onto the page tint so the JPEG
+      // is opaque and the rounded-card corners blend into the page, not black.
+      const comp = document.createElement('canvas');
+      comp.width = bc.width;
+      comp.height = bc.height;
+      const cx = comp.getContext('2d');
+      cx.fillStyle = bgCss;
+      cx.fillRect(0, 0, comp.width, comp.height);
+      cx.drawImage(bc, 0, 0);
+      const data = comp.toDataURL('image/jpeg', 0.92);
+
+      let w = contentW;
+      let h = bc.height * (contentW / bc.width);
+      // Only-shrink case: a single block taller than one usable page is scaled
+      // down to fit (its own page) — never split. Everything else keeps full width.
+      if (h > contentH) {
+        w = contentW * (contentH / h);
+        h = contentH;
       }
-      const sliceH = Math.max(1, Math.round(cut - start));
-      const slice = document.createElement('canvas');
-      slice.width = canvas.width;
-      slice.height = sliceH;
-      slice.getContext('2d').drawImage(
-        canvas, 0, start, canvas.width, sliceH, 0, 0, canvas.width, sliceH
-      );
-      const sliceData = slice.toDataURL('image/jpeg', 0.92);
-      const sliceHpt = sliceH * (pageW / canvas.width);
-      if (!first) pdf.addPage();
-      pdf.addImage(sliceData, 'JPEG', 0, 0, pageW, sliceHpt);
-      first = false;
-      start = cut;
+      // Page break when the block does not fit the remaining space on this page.
+      if (cursorY + h > pageH - margin) {
+        pdf.addPage();
+        fillPageBg();
+        cursorY = margin;
+      }
+      const x = margin + (contentW - w) / 2; // centre a shrunk block
+      pdf.addImage(data, 'JPEG', x, cursorY, w, h);
+      cursorY += h + gap;
     }
 
     const safe = (title || 'otkrytka').replace(/[\\/:*?"<>|\n\r\t]+/g, ' ').trim() || 'otkrytka';
@@ -1884,7 +1885,6 @@ async function exportDeliverPdf(target, title) {
       if (masonryCol) masonry.style.setProperty('column-count', masonryCol, masonryColPrio);
       else masonry.style.removeProperty('column-count');
     }
-    target.style.background = targetBg;
   }
 }
 
