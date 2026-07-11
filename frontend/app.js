@@ -1804,6 +1804,18 @@ async function exportDeliverPdf(target, title) {
       // the CLONED doc only (never the live card), swap any un-loadable <img> for
       // a neutral placeholder box carrying its alt text, keeping the card coherent.
       onclone: (clonedDoc) => {
+        // The deliver view uses entrance animations (.hero-reveal-1..4 fade-rise,
+        // .wish/.wish.enter wish-pop) that START at opacity:0 and settle to 1 on
+        // screen. html2canvas renders the clone in SCREEN media with animations
+        // RE-STARTED at t=0, so with `both` fill + delays the capture lands at
+        // opacity:0 → title + every wish text vanish. The CSS force-settles these
+        // under @media print, but the clone is screen media, so mirror that rule
+        // here (clone only, live DOM untouched). !important wins the cascade.
+        const settle = clonedDoc.createElement('style');
+        settle.textContent =
+          '.hero-reveal-1,.hero-reveal-2,.hero-reveal-3,.hero-reveal-4,.wish,.wish.enter{' +
+          'animation:none !important;opacity:1 !important;transform:none !important;}';
+        clonedDoc.head.appendChild(settle);
         const scope = clonedDoc.querySelector('.deliver-view') || clonedDoc.body;
         scope.querySelectorAll('img').forEach((img) => {
           if (img.complete && img.naturalWidth > 0) return;
