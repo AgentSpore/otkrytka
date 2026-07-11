@@ -1760,12 +1760,36 @@ async function exportDeliverPdf(target, title) {
   if (!target || typeof window.html2canvas !== 'function' || !(jspdfNs && jspdfNs.jsPDF)) {
     return _printFallback();
   }
+  // FIX 1: the .print-only colophon is display:none outside @media print, so
+  // html2canvas (which reads computed styles for SCREEN media at capture time)
+  // would omit the branding footer that the native print() fallback shows. Force
+  // it visible for the duration of the capture, then restore in the finally block.
+  const colophon = target.querySelector('.print-only');
+  const colophonDisplay = colophon ? colophon.style.display : null;
+  if (colophon) colophon.style.display = 'block';
   try {
     const canvas = await window.html2canvas(target, {
       backgroundColor: getComputedStyle(document.body).backgroundColor || '#ffffff',
       scale: Math.min(2, window.devicePixelRatio || 1),
       useCORS: true,
       ignoreElements: (el) => el.classList && el.classList.contains('no-print'),
+      // FIX 2: a wish GIF/image on a non-CORS host fails to load under useCORS
+      // and html2canvas would silently drop it, leaving a blank hole. In the
+      // CLONED doc only (never the live card), swap any un-loadable <img> for a
+      // neutral placeholder box carrying its alt text, so the card stays coherent.
+      onclone: (clonedDoc) => {
+        const scope = clonedDoc.querySelector('.deliver-view') || clonedDoc.body;
+        scope.querySelectorAll('img').forEach((img) => {
+          if (img.complete && img.naturalWidth > 0) return;
+          const ph = clonedDoc.createElement('div');
+          ph.textContent = img.getAttribute('alt') || '🖼';
+          ph.style.cssText =
+            'display:flex;align-items:center;justify-content:center;min-height:120px;' +
+            'padding:16px;border:2px dashed rgba(0,0,0,0.18);border-radius:16px;' +
+            'color:rgba(0,0,0,0.45);font-size:0.85rem;text-align:center;word-break:break-word';
+          if (img.parentNode) img.parentNode.replaceChild(ph, img);
+        });
+      },
     });
     const pdf = new jspdfNs.jsPDF({ unit: 'pt', format: 'a4' });
     const pageW = pdf.internal.pageSize.getWidth();
@@ -1789,6 +1813,9 @@ async function exportDeliverPdf(target, title) {
     pdf.save(`${safe}.pdf`);
   } catch (_) {
     _printFallback();
+  } finally {
+    // Restore the colophon's original screen-media visibility (default display:none).
+    if (colophon) colophon.style.display = colophonDisplay;
   }
 }
 
