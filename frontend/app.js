@@ -1823,7 +1823,9 @@ async function exportDeliverPdf(target, title) {
     const pageH = pdf.internal.pageSize.getHeight();
     // canvas px per CSS px, and the canvas px height that fills one PDF page.
     const ratio = canvas.height / target.scrollHeight;
-    const pageHpx = (pageH * canvas.width) / pageW;
+    // Guard a degenerate canvas.width (hidden/0-width target) so pageHpx stays
+    // positive — otherwise the paginator can never advance `start` (infinite loop).
+    const pageHpx = canvas.width > 0 ? (pageH * canvas.width) / pageW : canvas.height;
     // Card-bottom break candidates in canvas px (strictly inside the canvas).
     const breaks = wishBottomsCss
       .map((y) => y * ratio)
@@ -1834,7 +1836,8 @@ async function exportDeliverPdf(target, title) {
     // Only if a SINGLE card is taller than a full page do we hard-cut (unavoidable).
     let start = 0;
     let first = true;
-    while (start < canvas.height - 1) {
+    // `< canvas.height` (not `- 1`) so the final rows are never dropped.
+    while (start < canvas.height) {
       let cut = Math.min(start + pageHpx, canvas.height);
       if (cut < canvas.height) {
         let best = -1;
