@@ -1817,14 +1817,22 @@ async function exportDeliverPdf(target, title) {
     target.querySelectorAll('.wish').forEach((w) => blocks.push(w));
     if (colophon) blocks.push(colophon);
 
-    // Page tint sampled from the body base colour (cream/peach). Parse rgb() to
-    // numbers: jsPDF.setFillColor needs r,g,b, and the block compositor needs a
-    // css string to paint transparent card corners/margins so they match the page.
-    const bgRaw = getComputedStyle(document.body).backgroundColor || 'rgb(255,255,255)';
-    const bgNums = bgRaw.match(/\d+/g);
-    const r = bgNums ? +bgNums[0] : 255;
-    const g = bgNums ? +bgNums[1] : 255;
-    const b = bgNums ? +bgNums[2] : 255;
+    // Page tint = body base colour (cream/peach). The CSS defines it as
+    // `--cream: oklch(...)`, so getComputedStyle returns an oklch() string; a naive
+    // digit-regex would grab the oklch components (≠ rgb) and paint e.g. dark green.
+    // Resolve to real RGB via a 1px canvas round-trip; if the body colour is
+    // transparent (cream may come from a background-image), fall back to the
+    // --cream var, then to a cream literal. jsPDF.setFillColor needs r,g,b and the
+    // block compositor needs the css string to blend transparent card corners.
+    const CREAM_FALLBACK = [255, 247, 236];
+    let bgRgb = _cssToRgb(getComputedStyle(document.body).backgroundColor, null);
+    if (!bgRgb) {
+      const varCream = getComputedStyle(document.documentElement)
+        .getPropertyValue('--cream')
+        .trim();
+      bgRgb = _cssToRgb(varCream, CREAM_FALLBACK);
+    }
+    const [r, g, b] = bgRgb;
     const bgCss = `rgb(${r}, ${g}, ${b})`;
 
     const pdf = new jspdfNs.jsPDF({ unit: 'pt', format: 'a4' });
@@ -1844,8 +1852,11 @@ async function exportDeliverPdf(target, title) {
     for (const el of blocks) {
       const bc = await window.html2canvas(el, h2cOpts);
       if (!bc.width || !bc.height) continue;
-      // Composite the (transparent-cornered) block onto the page tint so the JPEG
-      // is opaque and the rounded-card corners blend into the page, not black.
+      // Composite the (transparent-cornered) block onto the page tint so the image
+      // is opaque and the rounded-card corners blend into the page, not black. The
+      // temp canvas is EXACTLY the block size, drawn at (0,0) — no offset strip.
+      // Encode PNG (lossless): JPEG left a checkerboard/banding artifact on the
+      // cards' smooth oklch gradients; per-block images are small so PNG size is fine.
       const comp = document.createElement('canvas');
       comp.width = bc.width;
       comp.height = bc.height;
@@ -1853,7 +1864,7 @@ async function exportDeliverPdf(target, title) {
       cx.fillStyle = bgCss;
       cx.fillRect(0, 0, comp.width, comp.height);
       cx.drawImage(bc, 0, 0);
-      const data = comp.toDataURL('image/jpeg', 0.92);
+      const data = comp.toDataURL('image/png');
 
       let w = contentW;
       let h = bc.height * (contentW / bc.width);
@@ -1870,7 +1881,7 @@ async function exportDeliverPdf(target, title) {
         cursorY = margin;
       }
       const x = margin + (contentW - w) / 2; // centre a shrunk block
-      pdf.addImage(data, 'JPEG', x, cursorY, w, h);
+      pdf.addImage(data, 'PNG', x, cursorY, w, h);
       cursorY += h + gap;
     }
 
@@ -1893,6 +1904,25 @@ function _printFallback() {
     window.print();
   } catch (_) {
     showToast(t('err_generic'));
+  }
+}
+
+/** Resolve any CSS colour string (oklch/hsl/var/named/rgb) to concrete [r,g,b] via
+ *  a 1px canvas round-trip — the browser does the colour-space conversion, so we
+ *  never hand-parse oklch. Returns `fallback` when the colour is transparent
+ *  (alpha 0) or the canvas is unavailable. */
+function _cssToRgb(cssColor, fallback) {
+  try {
+    const c = document.createElement('canvas');
+    c.width = c.height = 1;
+    const cx = c.getContext('2d');
+    cx.fillStyle = cssColor;
+    cx.fillRect(0, 0, 1, 1);
+    const d = cx.getImageData(0, 0, 1, 1).data;
+    if (d[3] === 0) return fallback; // transparent → caller-supplied fallback
+    return [d[0], d[1], d[2]];
+  } catch (_) {
+    return fallback;
   }
 }
 
