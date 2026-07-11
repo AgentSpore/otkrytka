@@ -264,6 +264,15 @@ async def lock_board(db: aiosqlite.Connection, board_id: int, organizer_token: s
     return await get_board(db, board["slug"])
 
 
+async def unlock_board(db: aiosqlite.Connection, board_id: int, organizer_token: str) -> dict:
+    """Reopen a locked board so wishes can be added again (organizer only)."""
+    board = await _board_row_by_id(db, board_id)
+    _check_token(board, organizer_token)
+    await db.execute("UPDATE boards SET locked = 0 WHERE id = ?", (board_id,))
+    await db.commit()
+    return await get_board(db, board["slug"])
+
+
 async def delete_board(db: aiosqlite.Connection, board_id: int, organizer_token: str) -> None:
     """Soft-delete the board (reversible) AND purge its uploaded files (not).
 

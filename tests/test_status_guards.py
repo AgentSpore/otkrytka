@@ -126,3 +126,66 @@ async def test_restore_survives_deleted_filter():
 async def _board_id(db, slug):
     board = await board_service.get_board(db, slug)
     return board["id"]
+
+
+# --- Unlock (reopen a closed board) --------------------------------------------
+# lock is reversible: the organizer can reopen a closed board so wishes flow again.
+
+async def _api_board(client):
+    body = (await client.post("/api/v1/boards", json={"title": "Открытка"})).json()
+    return body["slug"], body["organizer_token"]
+
+
+async def _api_board_id(client, slug):
+    return (await client.get(f"/api/v1/boards/{slug}")).json()["id"]
+
+
+@pytest.mark.asyncio
+async def test_unlock_flips_locked_flag(client):
+    slug, token = await _api_board(client)
+    bid = await _api_board_id(client, slug)
+    await client.patch(f"/api/v1/boards/{bid}/lock", json={"organizer_token": token})
+    assert (await client.get(f"/api/v1/boards/{slug}")).json()["locked"] is True
+
+    res = await client.patch(f"/api/v1/boards/{bid}/unlock", json={"organizer_token": token})
+    assert res.status_code == 200
+    assert res.json()["locked"] is False
+    assert (await client.get(f"/api/v1/boards/{slug}")).json()["locked"] is False
+
+
+@pytest.mark.asyncio
+async def test_unlock_requires_token(client):
+    slug, token = await _api_board(client)
+    bid = await _api_board_id(client, slug)
+    await client.patch(f"/api/v1/boards/{bid}/lock", json={"organizer_token": token})
+    res = await client.patch(f"/api/v1/boards/{bid}/unlock", json={"organizer_token": "wrong"})
+    assert res.status_code == 403
+    assert res.json()["detail"]["code"] == "organizer_token_required"
+    # A guest with no token cannot forge the call — the field is required (422).
+    assert (await client.patch(f"/api/v1/boards/{bid}/unlock", json={})).status_code == 422
+    # The board stays locked after a rejected unlock.
+    assert (await client.get(f"/api/v1/boards/{slug}")).json()["locked"] is True
+
+
+@pytest.mark.asyncio
+async def test_unlock_reopens_for_new_wishes(client):
+    slug, token = await _api_board(client)
+    bid = await _api_board_id(client, slug)
+    await client.patch(f"/api/v1/boards/{bid}/lock", json={"organizer_token": token})
+    blocked = await client.post(
+        f"/api/v1/boards/{slug}/cards", json={"author_name": "Петя", "text": "Поздно"}
+    )
+    assert blocked.status_code == 409
+
+    await client.patch(f"/api/v1/boards/{bid}/unlock", json={"organizer_token": token})
+    reopened = await client.post(
+        f"/api/v1/boards/{slug}/cards", json={"author_name": "Петя", "text": "Снова можно"}
+    )
+    assert reopened.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_unlock_unknown_board_404(client):
+    res = await client.patch("/api/v1/boards/999999/unlock", json={"organizer_token": "x"})
+    assert res.status_code == 404
+    assert res.json()["detail"]["code"] == "board_not_found"

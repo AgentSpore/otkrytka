@@ -129,6 +129,15 @@ async def lock_board(
     return out
 
 
+@router.patch("/boards/{board_id}/unlock", response_model=dict)
+async def unlock_board(
+    board_id: int, payload: OrganizerAction, db: aiosqlite.Connection = Depends(get_db)
+):
+    out = await board_service.unlock_board(db, board_id, payload.organizer_token)
+    await _notify(await board_service.slug_for_board_id(db, board_id))
+    return out
+
+
 @router.delete("/boards/{board_id}", status_code=204)
 async def delete_board(
     board_id: int, payload: OrganizerAction, db: aiosqlite.Connection = Depends(get_db)

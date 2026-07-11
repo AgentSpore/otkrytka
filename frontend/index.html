@@ -96,6 +96,13 @@
        are same-origin now, integrity=/crossorigin= are no longer needed. -->
   <script src="/vendor/confetti.browser.min.js"></script>
   <script src="/vendor/qrcode.min.js"></script>
+  <!-- Client-side "Save as PDF" for the delivery view (window.print() no-ops in
+       the Telegram/VK in-app browsers). html2canvas-pro@2.2.3 is the fork that
+       parses the OKLCH colours this design uses everywhere (classic html2canvas
+       renders oklch black); jspdf@4.2.1 lays the bitmap into an A4 PDF. Both are
+       version-pinned and same-origin, so no third-party script origin is added. -->
+  <script src="/vendor/html2canvas-pro.min.js"></script>
+  <script src="/vendor/jspdf.umd.min.js"></script>
   <script src="/app.js" defer></script>
 </body>
 </html>

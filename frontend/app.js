@@ -78,6 +78,7 @@ const STR = {
     delete_action: "Remove",
     pinned_flag: "Pinned",
     lock_btn: "Close the card",
+    unlock_btn: "Reopen card",
     locked_banner: "The card is closed and ready to deliver.",
     deliver_btn: "Deliver",
     delete_board: "Delete this card",
@@ -250,6 +251,7 @@ const STR = {
     delete_action: "Убрать",
     pinned_flag: "Закреплено",
     lock_btn: "Закрыть открытку",
+    unlock_btn: "Открыть заново",
     locked_banner: "Открытка закрыта и готова к вручению.",
     deliver_btn: "Подарить",
     delete_board: "Удалить открытку",
@@ -1311,7 +1313,9 @@ function paintBoard(root, slug, opts = {}) {
 
       ${isOrganizer ? `
       <div style="margin-top:36px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-        ${locked ? '' : `<button class="btn-soft btn-press-sm" data-lock="${b.id}">🔒 ${esc(t('lock_btn'))}</button>`}
+        ${locked
+          ? `<button class="btn-soft btn-press-sm" data-unlock="${b.id}">🔓 ${esc(t('unlock_btn'))}</button>`
+          : `<button class="btn-soft btn-press-sm" data-lock="${b.id}">🔒 ${esc(t('lock_btn'))}</button>`}
         <button class="cta-hero" style="min-height:44px;padding:11px 20px" data-deliver="1">🎁 ${esc(t('deliver_btn'))}</button>
         <button class="font-display" data-del-board="${b.id}" style="background:transparent;border:none;color:var(--muted);font-size:0.8rem;font-weight:700;cursor:pointer">🗑 ${esc(t('delete_board'))}</button>
       </div>` : ''}
@@ -1411,6 +1415,15 @@ function wireBoard(root, slug) {
     btn.addEventListener('click', async () => {
       try {
         await api.patch(`/api/v1/boards/${btn.dataset.lock}/lock`, { organizer_token: token });
+        await refreshBoard(root, slug);
+      } catch (e) { showToast(e.message); }
+    });
+  });
+
+  root.querySelectorAll('[data-unlock]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      try {
+        await api.patch(`/api/v1/boards/${btn.dataset.unlock}/unlock`, { organizer_token: token });
         await refreshBoard(root, slug);
       } catch (e) { showToast(e.message); }
     });
@@ -1717,9 +1730,74 @@ async function renderDeliver(root, slug) {
   // Name the saved PDF sensibly after the card, reusing the i18n tab-title wiring.
   document.title = b.title || t('doc_title');
   const printBtn = root.querySelector('#deliver-print');
-  if (printBtn) printBtn.addEventListener('click', () => window.print());
+  if (printBtn) {
+    printBtn.addEventListener('click', () =>
+      exportDeliverPdf(root.querySelector('.deliver-view'), b.title || document.title)
+    );
+  }
 
   fireConfetti();
+}
+
+/** Client-side "Save as PDF" for the delivery view.
+ *
+ *  window.print() silently no-ops inside the Telegram/VK in-app browsers, so we
+ *  rasterize the .deliver-view <main> with html2canvas-pro (the fork that parses
+ *  the OKLCH colours this design system uses everywhere — classic html2canvas
+ *  renders oklch as black) and lay the bitmap into a jsPDF A4 document, slicing
+ *  across pages when the card is taller than one page.
+ *
+ *  EXCLUDED from the capture: the .no-print button row (via ignoreElements). The
+ *  confetti overlay is a #confetti-canvas child of <body>, not of the captured
+ *  <main>, so it is out of frame by construction.
+ *
+ *  Failure modes — a missing/blocked library, a canvas tainted by a cross-origin
+ *  GIF (useCORS still leaves a non-CORS host tainted), or an out-of-memory on a
+ *  very tall card — all fall back to window.print(), so the button is never worse
+ *  than before. Only if print itself is unavailable do we surface an inline error. */
+async function exportDeliverPdf(target, title) {
+  const jspdfNs = window.jspdf;
+  if (!target || typeof window.html2canvas !== 'function' || !(jspdfNs && jspdfNs.jsPDF)) {
+    return _printFallback();
+  }
+  try {
+    const canvas = await window.html2canvas(target, {
+      backgroundColor: getComputedStyle(document.body).backgroundColor || '#ffffff',
+      scale: Math.min(2, window.devicePixelRatio || 1),
+      useCORS: true,
+      ignoreElements: (el) => el.classList && el.classList.contains('no-print'),
+    });
+    const pdf = new jspdfNs.jsPDF({ unit: 'pt', format: 'a4' });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const imgW = pageW;
+    const imgH = canvas.height * (pageW / canvas.width);
+    const imgData = canvas.toDataURL('image/jpeg', 0.92);
+    // Slice-by-page-height: place the full-width image once per page, shifting it
+    // up by one page height each time so a different band is inside the page box.
+    let heightLeft = imgH;
+    let position = 0;
+    pdf.addImage(imgData, 'JPEG', 0, position, imgW, imgH);
+    heightLeft -= pageH;
+    while (heightLeft > 0) {
+      position -= pageH;
+      pdf.addPage();
+      pdf.addImage(imgData, 'JPEG', 0, position, imgW, imgH);
+      heightLeft -= pageH;
+    }
+    const safe = (title || 'otkrytka').replace(/[\\/:*?"<>|\n\r\t]+/g, ' ').trim() || 'otkrytka';
+    pdf.save(`${safe}.pdf`);
+  } catch (_) {
+    _printFallback();
+  }
+}
+
+function _printFallback() {
+  try {
+    window.print();
+  } catch (_) {
+    showToast(t('err_generic'));
+  }
 }
 
 // ─── Global delegated clicks (lang toggle + home) ────────────────────────────
