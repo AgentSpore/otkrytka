@@ -1776,11 +1776,27 @@ async function exportDeliverPdf(target, title) {
   const masonryColPrio = masonry ? masonry.style.getPropertyPriority('column-count') : '';
   if (masonry) masonry.style.setProperty('column-count', '1', 'important');
 
+  // Resolve the three card tints to FLAT sRGB solids. html2canvas-pro rasterizes
+  // the cards' oklch linear-gradients into a hard rectangular checkerboard (it
+  // can't render oklch gradients smoothly) — a FLAT solid renders perfectly. We
+  // use each gradient's START tint so the coral/amber/near-white 3-way variety is
+  // preserved (styles.css: .wish nth-child 3n+1 coral-light, 3n+2 surface, 3n+3
+  // amber-light). oklch → rgb via the same _cssToRgb canvas round-trip as the page.
+  const rootStyle = getComputedStyle(document.documentElement);
+  const cssVarRgb = (name, fb) => {
+    const [r, g, b] = _cssToRgb(rootStyle.getPropertyValue(name).trim(), fb);
+    return `rgb(${r}, ${g}, ${b})`;
+  };
+  const wishCoral = cssVarRgb('--coral-light', [255, 240, 238]);
+  const wishSurface = cssVarRgb('--surface', [252, 251, 248]);
+  const wishAmber = cssVarRgb('--amber-light', [255, 246, 233]);
+
   // Shared html2canvas options — reused for EVERY per-block capture. onclone runs
   // per capture and (a) force-settles the entrance animations that start at
-  // opacity:0 (else title/wish text vanish) and (b) swaps un-loadable cross-origin
-  // images for a neutral placeholder. backgroundColor:null keeps each card's own
-  // coral/amber gradient (composited over the page tint below).
+  // opacity:0 (else title/wish text vanish), (b) flattens each card's oklch
+  // gradient to a solid (kills the checkerboard artifact), and (c) swaps
+  // un-loadable cross-origin images for a neutral placeholder. backgroundColor:null
+  // keeps the flat card fills, composited over the page tint below.
   const h2cOpts = {
     backgroundColor: null,
     scale: Math.min(2, window.devicePixelRatio || 1),
@@ -1790,7 +1806,15 @@ async function exportDeliverPdf(target, title) {
       const settle = clonedDoc.createElement('style');
       settle.textContent =
         '.hero-reveal-1,.hero-reveal-2,.hero-reveal-3,.hero-reveal-4,.wish,.wish.enter{' +
-        'animation:none !important;opacity:1 !important;transform:none !important;}';
+        'animation:none !important;opacity:1 !important;transform:none !important;}' +
+        // Flatten the oklch card gradients to their start-tint solids (clone only).
+        // nth-child counts DOM siblings (not visual columns), so the 3-way tint
+        // rotation is preserved even under the single-column capture layout.
+        '.deliver-view .masonry .wish:nth-child(3n+1){background:' + wishCoral + ' !important}' +
+        '.deliver-view .masonry .wish:nth-child(3n+2){background:' + wishSurface + ' !important}' +
+        '.deliver-view .masonry .wish:nth-child(3n+3){background:' + wishAmber + ' !important}' +
+        // Safety: strip any residual gradient layer from every card.
+        '.deliver-view .wish{background-image:none !important}';
       clonedDoc.head.appendChild(settle);
       const scope = clonedDoc.querySelector('.deliver-view') || clonedDoc.body;
       scope.querySelectorAll('img').forEach((img) => {
