@@ -123,6 +123,25 @@ const STR = {
     back_to_board: "Back to the card",
     download_pdf: "Print / Save as PDF",
 
+    // Occasion preset / scheduled reveal / corp-brand
+    occasion_label: "Card type",
+    occasion_birthday: "Birthday",
+    occasion_farewell: "Farewell",
+    occasion_teacher: "For a teacher",
+    occasion_retirement: "Retirement",
+    occasion_thanks: "Thank you",
+    reveal_at_label: "Reveal wishes at (optional)",
+    reveal_hint: "Until then guests add wishes but cannot see them. You can reveal earlier.",
+    reveal_btn: "Reveal wishes now",
+    gated_title: "Wishes are hidden for now",
+    gated_hint: "Add your wish — everything opens at the chosen moment.",
+    gated_hidden: "hidden until reveal",
+    brand_color_label: "Brand color (optional)",
+    wish_prompt_farewell: "Write a wish for your departing colleague…",
+    wish_prompt_teacher: "Write a thank-you to your teacher…",
+    wish_prompt_retirement: "Wish them a happy retirement…",
+    wish_prompt_thanks: "Write your words of thanks…",
+
     // Status / live / errors
     ws_live: "Live",
     ws_reconnecting: "Reconnecting…",
@@ -297,6 +316,25 @@ const STR = {
     back_to_board: "Вернуться к открытке",
     download_pdf: "Печать / Сохранить в PDF",
 
+    // Повод / отложенное открытие / фирменный стиль
+    occasion_label: "Тип открытки",
+    occasion_birthday: "День рождения",
+    occasion_farewell: "Проводы коллеги",
+    occasion_teacher: "Учителю",
+    occasion_retirement: "На пенсию",
+    occasion_thanks: "Благодарность",
+    reveal_at_label: "Открыть пожелания (по желанию)",
+    reveal_hint: "До этого момента гости добавляют пожелания, но не видят их. Вы можете открыть раньше.",
+    reveal_btn: "Открыть пожелания сейчас",
+    gated_title: "Пожелания пока скрыты",
+    gated_hint: "Добавьте своё пожелание — все откроются в назначенный момент.",
+    gated_hidden: "скрыто до открытия",
+    brand_color_label: "Цвет бренда (по желанию)",
+    wish_prompt_farewell: "Напишите пожелание уходящему коллеге…",
+    wish_prompt_teacher: "Напишите слова благодарности учителю…",
+    wish_prompt_retirement: "Пожелайте счастливых лет на пенсии…",
+    wish_prompt_thanks: "Напишите слова благодарности…",
+
     // Status / live / errors
     ws_live: "Вживую",
     ws_reconnecting: "Переподключение…",
@@ -356,6 +394,30 @@ const MAX_UPLOAD_MB = 3; // matches backend max_upload_mb (config.py); checked o
 
 const COVERS = ['🎂', '🎉', '💐', '🌸', '❤️', '🎁', '✨', '🥳', '🌟', '🎈'];
 
+// Occasion presets — must mirror the backend Literal (schemas/board.py).
+const OCCASIONS = ['birthday', 'farewell', 'teacher', 'retirement', 'thanks'];
+
+/** Guest wish placeholder for the occasion; birthday/null keeps the original. */
+function occasionWishPrompt(occasion) {
+  const dict = STR[state.lang] || STR.en;
+  const key = `wish_prompt_${occasion || 'birthday'}`;
+  return dict[key] !== undefined ? t(key) : t('text_ph');
+}
+
+/** Only ever inject a strict #RRGGBB into a style attribute (defense in depth —
+ *  the server already validates, but never trust a value flowing into markup). */
+function safeHex(v) {
+  return (typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v)) ? v : null;
+}
+
+/** Localized human-readable reveal moment for the gate banner. */
+function fmtRevealAt(iso) {
+  try {
+    return new Date(iso).toLocaleString(state.lang === 'ru' ? 'ru-RU' : 'en-US',
+      { dateStyle: 'medium', timeStyle: 'short' });
+  } catch (_) { return iso; }
+}
+
 // ─── State ─────────────────────────────────────────────────────────────────
 const state = {
   lang: (() => {
@@ -398,7 +460,7 @@ function userIsBusy() {
 /** Apply a deferred refresh, animating new cards and preserving scroll. */
 async function applyObserverRefresh(slug) {
   try {
-    const board = await api.get(`/api/v1/boards/${slug}`);
+    const board = await fetchBoard(slug);
     state.board = board;
     const scrollY = window.scrollY;
     const paint = state.embed ? paintEmbed : paintBoard;
@@ -568,8 +630,8 @@ function apiError(json) {
   return err;
 }
 
-async function apiCall(method, path, body) {
-  const opts = { method, headers: {} };
+async function apiCall(method, path, body, extraHeaders) {
+  const opts = { method, headers: { ...(extraHeaders || {}) } };
   if (body !== undefined) {
     opts.headers['Content-Type'] = 'application/json';
     opts.body = JSON.stringify(body);
@@ -587,6 +649,15 @@ const api = {
   patch: (p, b) => apiCall('PATCH', p, b),
   del: (p, b) => apiCall('DELETE', p, b),
 };
+
+/** GET a board, presenting the organizer token (when this device holds it) so a
+ *  not-yet-revealed board's wishes are previewed. The token rides in a header,
+ *  never the URL, so it stays out of server access logs. */
+function fetchBoard(slug) {
+  const token = getOrgToken(slug);
+  return apiCall('GET', `/api/v1/boards/${slug}`, undefined,
+    token ? { 'X-Organizer-Token': token } : undefined);
+}
 
 async function uploadImage(slug, blob, filename) {
   const fd = new FormData();
@@ -1010,6 +1081,18 @@ function renderLanding(root) {
         <div class="cover-grid" id="cover-grid">
           ${COVERS.map((c, i) => `<button type="button" class="cover-chip ${i === 0 ? 'sel' : ''}" data-cover="${esc(c)}">${c}</button>`).join('')}
         </div>
+        <label class="modal-label" style="display:block;margin:14px 0 8px">${esc(t('occasion_label'))}</label>
+        <select id="create-occasion" class="kg-input">
+          ${OCCASIONS.map(o => `<option value="${esc(o)}">${esc(t('occasion_' + o))}</option>`).join('')}
+        </select>
+        <label class="modal-label" style="display:block;margin:14px 0 8px">${esc(t('reveal_at_label'))}</label>
+        <input id="create-reveal" class="kg-input" type="datetime-local">
+        <p style="color:var(--muted);font-size:0.8rem;margin-top:6px">${esc(t('reveal_hint'))}</p>
+        <label class="modal-label" style="display:block;margin:14px 0 8px">${esc(t('brand_color_label'))}</label>
+        <div style="display:flex;align-items:center;gap:10px">
+          <input id="brand-toggle" type="checkbox">
+          <input id="create-brand" type="color" value="#c93b57" disabled style="width:46px;height:34px;border:none;background:transparent;cursor:pointer">
+        </div>
         <button id="create-btn" class="cta-hero" style="width:100%;margin-top:18px">💌 ${esc(t('create_btn'))}</button>
 
         <div class="ornament-rule gold" style="margin:20px 0"><span>${esc(t('or_label'))}</span></div>
@@ -1032,13 +1115,27 @@ function renderLanding(root) {
     });
   });
 
+  const brandToggle = root.querySelector('#brand-toggle');
+  brandToggle.addEventListener('change', () => {
+    root.querySelector('#create-brand').disabled = !brandToggle.checked;
+  });
+
   const titleInput = root.querySelector('#create-title');
   const doCreate = async () => {
     const title = titleInput.value.trim();
     if (!title) { titleInput.focus(); return; }
     const recipient = root.querySelector('#create-recipient').value.trim() || null;
+    const body = { title, recipient, cover };
+    // Occasion 'birthday' is the default -> omit it so a plain card stays null
+    // (backward-compatible). A datetime-local value is local time; convert to a
+    // UTC ISO string so the server-side gate compares in one canonical zone.
+    const occasion = root.querySelector('#create-occasion').value;
+    if (occasion && occasion !== 'birthday') body.occasion = occasion;
+    const revealRaw = root.querySelector('#create-reveal').value;
+    if (revealRaw) body.reveal_at = new Date(revealRaw).toISOString();
+    if (brandToggle.checked) body.brand_color = root.querySelector('#create-brand').value;
     try {
-      const out = await api.post('/api/v1/boards', { title, recipient, cover });
+      const out = await api.post('/api/v1/boards', body);
       setOrgToken(out.slug, out.organizer_token);
       showCreatedModal(out.slug, out.organizer_token, title);
     } catch (e) { showToast(e.message); }
@@ -1200,7 +1297,7 @@ function renderNotFound(root) {
 async function renderBoard(root, slug) {
   root.innerHTML = `<div style="max-width:720px;margin:60px auto;text-align:center;color:var(--muted)" class="font-display">${esc(t('loading'))}</div>`;
   try {
-    state.board = await api.get(`/api/v1/boards/${slug}`);
+    state.board = await fetchBoard(slug);
   } catch (e) {
     root.innerHTML = `
       <div style="max-width:520px;margin:80px auto;text-align:center;padding:0 6vw">
@@ -1245,13 +1342,24 @@ function paintBoard(root, slug, opts = {}) {
   const myName = getMyName(slug);
   const isOrganizer = !!getOrgToken(slug);
   const locked = b.locked;
+  // Reveal gate: the server withholds wishes from a guest until reveal. When
+  // gated, the guest sees a placeholder (and the waiting count) instead of the
+  // wishes; the organizer always previews them (token header on the fetch).
+  const gatedForGuest = !b.revealed && !isOrganizer;
+  const bc = safeHex(b.brand_color); // corp-brand accent, or null
 
-  const cardsHtml = b.cards.length === 0
+  const cardsHtml = gatedForGuest
     ? `<div class="cozy-card" style="padding:32px;text-align:center;max-width:460px;margin:0 auto">
-         <p class="font-display" style="font-weight:800;color:var(--ink);font-size:1.05rem">${esc(t('empty_title'))}</p>
-         <p style="margin-top:8px;color:var(--muted)">${esc(t('empty_hint'))}</p>
+         <p class="font-display" style="font-weight:800;color:var(--ink);font-size:1.05rem">🔒 ${esc(t('gated_title'))}</p>
+         <p style="margin-top:8px;color:var(--muted)">${esc(t('gated_hint'))}</p>
+         ${b.card_count > 0 ? `<p style="margin-top:10px;color:var(--muted);font-weight:700">🎁 ${esc(pluralWishes(b.card_count))} · ${esc(t('gated_hidden'))}</p>` : ''}
        </div>`
-    : `<div class="masonry">${b.cards.map(c => wishHtml(c, isOrganizer, animateNew && !state.seen.has(c.id))).join('')}</div>`;
+    : (b.cards.length === 0
+      ? `<div class="cozy-card" style="padding:32px;text-align:center;max-width:460px;margin:0 auto">
+           <p class="font-display" style="font-weight:800;color:var(--ink);font-size:1.05rem">${esc(t('empty_title'))}</p>
+           <p style="margin-top:8px;color:var(--muted)">${esc(t('empty_hint'))}</p>
+         </div>`
+      : `<div class="masonry">${b.cards.map(c => wishHtml(c, isOrganizer, animateNew && !state.seen.has(c.id))).join('')}</div>`);
 
   root.innerHTML = `
     <nav style="position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:12px 5vw;background:oklch(98% 0.018 75 / 0.92);backdrop-filter:blur(12px);border-bottom:2px solid var(--sand-deep)">
@@ -1264,9 +1372,9 @@ function paintBoard(root, slug, opts = {}) {
 
     <main style="max-width:1000px;margin:0 auto;padding:28px 6vw 100px">
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-        <span class="cover-badge">${esc(b.cover || '💌')}</span>
+        <span class="cover-badge"${bc ? ` style="box-shadow:0 0 0 3px ${bc}"` : ''}>${esc(b.cover || '💌')}</span>
         <div style="flex:1;min-width:0">
-          <h1 class="font-display title-clamp" style="font-weight:900;font-size:clamp(1.6rem,4vw,2.4rem);color:var(--ink);letter-spacing:-0.01em">${esc(b.title)}</h1>
+          <h1 class="font-display title-clamp" style="font-weight:900;font-size:clamp(1.6rem,4vw,2.4rem);color:var(--ink);letter-spacing:-0.01em${bc ? `;border-bottom:3px solid ${bc};display:inline-block;padding-bottom:2px` : ''}">${esc(b.title)}</h1>
           ${b.recipient ? `<p style="color:var(--muted);margin-top:2px;font-weight:600">${esc(t('for_word'))} <span style="color:var(--ink);font-weight:800">${esc(b.recipient)}</span></p>` : ''}
         </div>
       </div>
@@ -1298,6 +1406,12 @@ function paintBoard(root, slug, opts = {}) {
         <button class="font-display" data-set-name="1" style="background:transparent;border:none;color:var(--coral);font-size:0.82rem;font-weight:800;cursor:pointer">${myName ? esc(t('change_name')) : esc(t('set_name'))}</button>
       </div>
 
+      ${!b.revealed ? `
+      <div class="locked-banner" style="margin-top:20px">
+        <span style="font-size:1.4rem">🔒</span>
+        <p class="font-display" style="font-weight:800;color:var(--ink)">${esc(t('gated_title'))}${b.reveal_at ? ` · ${esc(fmtRevealAt(b.reveal_at))}` : ''}</p>
+      </div>` : ''}
+
       ${locked ? `
       <div class="locked-banner" style="margin-top:20px">
         <span style="font-size:1.4rem">🎀</span>
@@ -1316,6 +1430,7 @@ function paintBoard(root, slug, opts = {}) {
         ${locked
           ? `<button class="btn-soft btn-press-sm" data-unlock="${b.id}">🔓 ${esc(t('unlock_btn'))}</button>`
           : `<button class="btn-soft btn-press-sm" data-lock="${b.id}">🔒 ${esc(t('lock_btn'))}</button>`}
+        ${!b.revealed ? `<button class="cta-hero" style="min-height:44px;padding:11px 20px" data-reveal="${b.id}">🔓 ${esc(t('reveal_btn'))}</button>` : ''}
         <button class="cta-hero" style="min-height:44px;padding:11px 20px" data-deliver="1">🎁 ${esc(t('deliver_btn'))}</button>
         <button class="font-display" data-del-board="${b.id}" style="background:transparent;border:none;color:var(--muted);font-size:0.8rem;font-weight:700;cursor:pointer">🗑 ${esc(t('delete_board'))}</button>
       </div>` : ''}
@@ -1420,6 +1535,15 @@ function wireBoard(root, slug) {
     });
   });
 
+  root.querySelectorAll('[data-reveal]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      try {
+        await api.patch(`/api/v1/boards/${btn.dataset.reveal}/reveal`, { organizer_token: token });
+        await refreshBoard(root, slug);
+      } catch (e) { showToast(e.message); }
+    });
+  });
+
   root.querySelectorAll('[data-unlock]').forEach(btn => {
     btn.addEventListener('click', async () => {
       try {
@@ -1455,7 +1579,7 @@ function wireBoard(root, slug) {
 /** Refetch and repaint, animating any newly arrived cards. */
 async function refreshBoard(root, slug) {
   try {
-    state.board = await api.get(`/api/v1/boards/${slug}`);
+    state.board = await fetchBoard(slug);
     paintBoard(root, slug, { animateNew: true });
   } catch (e) {
     showToast(e.message);
@@ -1514,7 +1638,7 @@ function showEmbedModal(slug) {
 async function renderEmbed(root, slug) {
   root.innerHTML = `<div style="max-width:720px;margin:48px auto;text-align:center;color:var(--muted)" class="font-display">${esc(t('loading'))}</div>`;
   try {
-    state.board = await api.get(`/api/v1/boards/${slug}`);
+    state.board = await fetchBoard(slug);
   } catch (e) {
     root.innerHTML = `<div style="max-width:520px;margin:60px auto;text-align:center;padding:0 6vw"><p class="font-display" style="font-size:1.1rem;font-weight:800;color:var(--ink)">${esc(t('err_not_found'))}</p></div>`;
     return;
@@ -1566,7 +1690,7 @@ function showAddWishModal(root, slug) {
     </div>
     <div>
       <label class="modal-label">${esc(t('text_label'))}</label>
-      <textarea class="kg-textarea" data-f="text" maxlength="2000" placeholder="${esc(t('text_ph'))}" style="margin-top:6px"></textarea>
+      <textarea class="kg-textarea" data-f="text" maxlength="2000" placeholder="${esc(occasionWishPrompt(state.board && state.board.occasion))}" style="margin-top:6px"></textarea>
     </div>
     <div>
       <label class="modal-label">${esc(t('photo_label'))}</label>
@@ -1693,7 +1817,7 @@ async function renderDeliver(root, slug) {
   root.innerHTML = `<div style="max-width:720px;margin:60px auto;text-align:center;color:var(--muted)" class="font-display">${esc(t('loading'))}</div>`;
   let b;
   try {
-    b = await api.get(`/api/v1/boards/${slug}`);
+    b = await fetchBoard(slug);
   } catch (e) {
     root.innerHTML = `
       <div style="max-width:520px;margin:80px auto;text-align:center;padding:0 6vw">
@@ -1704,10 +1828,24 @@ async function renderDeliver(root, slug) {
     return;
   }
 
+  // Reveal gate: a guest cannot open the delivery view before reveal. The
+  // organizer (token on the fetch) always previews it.
+  if (!b.revealed && !getOrgToken(slug)) {
+    root.innerHTML = `
+      <main class="hero-blobs" style="max-width:560px;margin:0 auto;padding:60px 6vw 90px;text-align:center">
+        <span class="cover-badge big">🔒</span>
+        <p class="font-display" style="font-size:1.3rem;font-weight:800;color:var(--ink);margin-top:18px">${esc(t('gated_title'))}${b.reveal_at ? ` · ${esc(fmtRevealAt(b.reveal_at))}` : ''}</p>
+        <p style="color:var(--muted);margin-top:10px">${esc(t('gated_hint'))}</p>
+        <a class="font-display" href="#/${esc(slug)}" style="display:inline-block;margin-top:24px;color:var(--coral);font-weight:800;text-decoration:none">← ${esc(t('back_to_board'))}</a>
+      </main>`;
+    return;
+  }
+
+  const bc = safeHex(b.brand_color);
   root.innerHTML = `
     <main class="hero-blobs deliver-view" style="max-width:1000px;margin:0 auto;padding:40px 6vw 90px">
       <div class="deliver-head" style="text-align:center;max-width:640px;margin:0 auto">
-        <div class="hero-reveal-1"><span class="cover-badge big">${esc(b.cover || '💌')}</span></div>
+        <div class="hero-reveal-1"><span class="cover-badge big"${bc ? ` style="box-shadow:0 0 0 3px ${bc}"` : ''}>${esc(b.cover || '💌')}</span></div>
         ${b.recipient ? `<p class="hero-reveal-2 font-display" style="color:var(--coral);font-weight:800;margin-top:14px;font-size:1.05rem">${esc(t('deliver_intro'))} ${esc(b.recipient)}</p>` : ''}
         <h1 class="hero-reveal-2 font-display" style="font-weight:900;font-size:clamp(1.9rem,5vw,3rem);color:var(--ink);letter-spacing:-0.02em;margin-top:6px">${esc(b.title)}</h1>
         <p class="hero-reveal-3" style="color:var(--muted);margin-top:10px">${esc(pluralWishes(b.cards.length))}</p>
@@ -1724,7 +1862,7 @@ async function renderDeliver(root, slug) {
         <a class="font-display" href="#/${esc(slug)}" style="color:var(--muted);font-weight:700;font-size:0.85rem;text-decoration:none">← ${esc(t('back_to_board'))}</a>
       </div>
 
-      <footer class="print-only deliver-colophon">${esc(b.title)} · ${esc(t('brand'))}</footer>
+      <footer class="print-only deliver-colophon">${bc ? `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${bc};margin-right:6px"></span>` : ''}${esc(b.title)} · ${esc(t('brand'))}</footer>
     </main>`;
 
   // Name the saved PDF sensibly after the card, reusing the i18n tab-title wiring.

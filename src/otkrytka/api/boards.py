@@ -11,6 +11,7 @@ from fastapi import (
     APIRouter,
     Depends,
     File,
+    Header,
     UploadFile,
     WebSocket,
     WebSocketDisconnect,
@@ -19,7 +20,7 @@ from fastapi import (
 from ..core.config import get_settings
 from ..core.db import get_db
 from ..core.realtime import hub
-from ..schemas.board import BoardCreate, CardCreate, OrganizerAction
+from ..schemas.board import BoardCreate, BoardSettings, CardCreate, OrganizerAction
 from ..services import board_service
 
 router = APIRouter()
@@ -82,13 +83,25 @@ async def board_ws(slug: str, ws: WebSocket):
 @router.post("/boards", response_model=dict)
 async def create_board(payload: BoardCreate, db: aiosqlite.Connection = Depends(get_db)):
     return await board_service.create_board(
-        db, payload.title, payload.recipient, payload.cover
+        db,
+        payload.title,
+        payload.recipient,
+        payload.cover,
+        payload.occasion,
+        payload.reveal_at,
+        payload.brand_color,
     )
 
 
 @router.get("/boards/{slug}", response_model=dict)
-async def get_board(slug: str, db: aiosqlite.Connection = Depends(get_db)):
-    return await board_service.get_board(db, slug)
+async def get_board(
+    slug: str,
+    db: aiosqlite.Connection = Depends(get_db),
+    x_organizer_token: str | None = Header(default=None),
+):
+    # The organizer previews a not-yet-revealed board's wishes by presenting the
+    # token in a header (not a query param, so it never lands in access logs).
+    return await board_service.get_board(db, slug, x_organizer_token)
 
 
 @router.post("/boards/{slug}/cards", response_model=dict)
@@ -134,6 +147,31 @@ async def unlock_board(
     board_id: int, payload: OrganizerAction, db: aiosqlite.Connection = Depends(get_db)
 ):
     out = await board_service.unlock_board(db, board_id, payload.organizer_token)
+    await _notify(await board_service.slug_for_board_id(db, board_id))
+    return out
+
+
+@router.patch("/boards/{board_id}/reveal", response_model=dict)
+async def reveal_board(
+    board_id: int, payload: OrganizerAction, db: aiosqlite.Connection = Depends(get_db)
+):
+    out = await board_service.reveal_board(db, board_id, payload.organizer_token)
+    await _notify(await board_service.slug_for_board_id(db, board_id))
+    return out
+
+
+@router.patch("/boards/{board_id}/settings", response_model=dict)
+async def update_board_settings(
+    board_id: int, payload: BoardSettings, db: aiosqlite.Connection = Depends(get_db)
+):
+    out = await board_service.update_board_settings(
+        db,
+        board_id,
+        payload.organizer_token,
+        payload.occasion,
+        payload.reveal_at,
+        payload.brand_color,
+    )
     await _notify(await board_service.slug_for_board_id(db, board_id))
     return out
 

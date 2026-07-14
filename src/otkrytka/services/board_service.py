@@ -11,6 +11,7 @@ import os
 import secrets
 import string
 import warnings
+from datetime import datetime, timezone
 from urllib.parse import urlparse
 
 import aiosqlite
@@ -127,12 +128,65 @@ def _check_token(board: aiosqlite.Row, organizer_token: str) -> None:
         raise api_error(403, "organizer_token_required", "Organizer token required")
 
 
+def _is_organizer(board: aiosqlite.Row, organizer_token: str | None) -> bool:
+    """Non-raising organizer check for read paths (preview), constant-time."""
+    if not organizer_token:
+        return False
+    return secrets.compare_digest(board["organizer_token"], organizer_token)
+
+
+# --- Scheduled reveal ------------------------------------------------------
+
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _reveal_at_to_storage(value: datetime | None) -> str | None:
+    """Normalize a reveal_at datetime to a UTC ISO string for storage.
+
+    A naive datetime is treated as UTC; an aware one is converted to UTC. Storing
+    a single canonical form keeps the read-time ``now >= reveal_at`` comparison
+    unambiguous regardless of the client's timezone.
+    """
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc).isoformat()
+
+
+def _parse_reveal_at(stored: str) -> datetime:
+    dt = datetime.fromisoformat(stored)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
+def _is_revealed(board: aiosqlite.Row, now: datetime) -> bool:
+    """True when the board's wishes are open to everyone.
+
+    Open when the ``revealed`` flag is set (manual reveal, or a board with no
+    schedule — DEFAULT 1, so legacy boards are always open) OR when a scheduled
+    ``reveal_at`` has passed. This is a read-time GATE, not a background job.
+    """
+    if board["revealed"]:
+        return True
+    stored = board["reveal_at"]
+    if stored:
+        try:
+            return now >= _parse_reveal_at(stored)
+        except ValueError:
+            return False  # unparseable -> stay gated rather than leak early
+    return False
+
+
 # --- Row helpers -----------------------------------------------------------
 
 async def _board_row(db: aiosqlite.Connection, slug: str) -> aiosqlite.Row:
     db.row_factory = aiosqlite.Row
     async with db.execute(
-        "SELECT id, slug, title, recipient, cover, organizer_token, locked "
+        "SELECT id, slug, title, recipient, cover, organizer_token, locked, "
+        "occasion, reveal_at, revealed, brand_color "
         "FROM boards WHERE slug = ? AND deleted_at IS NULL",
         (slug,),
     ) as cur:
@@ -148,7 +202,8 @@ async def _board_row_by_id(db: aiosqlite.Connection, board_id: int) -> aiosqlite
     # calling this, so it is unaffected.
     db.row_factory = aiosqlite.Row
     async with db.execute(
-        "SELECT id, slug, title, recipient, cover, organizer_token, locked "
+        "SELECT id, slug, title, recipient, cover, organizer_token, locked, "
+        "occasion, reveal_at, revealed, brand_color "
         "FROM boards WHERE id = ? AND deleted_at IS NULL",
         (board_id,),
     ) as cur:
@@ -216,8 +271,29 @@ async def _cards_out(db: aiosqlite.Connection, board_id: int) -> list[dict]:
     return [_card_out(r) for r in rows]
 
 
-async def get_board(db: aiosqlite.Connection, slug: str) -> dict:
+async def _card_count(db: aiosqlite.Connection, board_id: int) -> int:
+    async with db.execute(
+        "SELECT COUNT(*) AS n FROM cards WHERE board_id = ?", (board_id,)
+    ) as cur:
+        return (await cur.fetchone())["n"]
+
+
+async def get_board(
+    db: aiosqlite.Connection, slug: str, organizer_token: str | None = None
+) -> dict:
+    """Assemble the board. Wishes are withheld until the board is revealed.
+
+    Server-enforced reveal gate: a scheduled (or manually gated) board hides its
+    ``cards`` from guests until ``reveal_at`` passes or the organizer reveals it.
+    The organizer (valid token) always previews the wishes. ``card_count`` is
+    always exposed so a gated guest can see how many wishes are waiting without
+    reading them. A board with no schedule is ``revealed`` (DEFAULT 1) -> cards
+    are always shown -> behaviour is byte-identical to before this feature.
+    """
     board = await _board_row(db, slug)
+    db.row_factory = aiosqlite.Row
+    revealed = _is_revealed(board, _utcnow())
+    show_cards = revealed or _is_organizer(board, organizer_token)
     return {
         "id": board["id"],
         "slug": board["slug"],
@@ -225,7 +301,12 @@ async def get_board(db: aiosqlite.Connection, slug: str) -> dict:
         "recipient": board["recipient"],
         "cover": board["cover"],
         "locked": bool(board["locked"]),
-        "cards": await _cards_out(db, board["id"]),
+        "occasion": board["occasion"],
+        "reveal_at": board["reveal_at"],
+        "revealed": revealed,
+        "brand_color": board["brand_color"],
+        "card_count": await _card_count(db, board["id"]),
+        "cards": await _cards_out(db, board["id"]) if show_cards else [],
     }
 
 
@@ -236,15 +317,27 @@ async def create_board(
     title: str,
     recipient: str | None,
     cover: str | None,
+    occasion: str | None = None,
+    reveal_at: datetime | None = None,
+    brand_color: str | None = None,
 ) -> dict:
     token = _gen_token()
+    reveal_stored = _reveal_at_to_storage(reveal_at)
+    # A scheduled board starts gated (revealed=0); a board with no schedule is
+    # open from the start (revealed=1) — the current behaviour.
+    revealed = 0 if reveal_stored else 1
     for _ in range(_SLUG_MAX_TRIES):
         slug = _gen_slug()
         try:
             await db.execute(
-                "INSERT INTO boards (slug, title, recipient, cover, organizer_token) "
-                "VALUES (?, ?, ?, ?, ?)",
-                (slug, title, recipient, cover or "", token),
+                "INSERT INTO boards "
+                "(slug, title, recipient, cover, organizer_token, "
+                "occasion, reveal_at, revealed, brand_color) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    slug, title, recipient, cover or "", token,
+                    occasion, reveal_stored, revealed, brand_color,
+                ),
             )
             await db.commit()
             # organizer_token is returned exactly once, to the creator.
@@ -261,7 +354,7 @@ async def lock_board(db: aiosqlite.Connection, board_id: int, organizer_token: s
     _check_token(board, organizer_token)
     await db.execute("UPDATE boards SET locked = 1 WHERE id = ?", (board_id,))
     await db.commit()
-    return await get_board(db, board["slug"])
+    return await get_board(db, board["slug"], organizer_token)
 
 
 async def unlock_board(db: aiosqlite.Connection, board_id: int, organizer_token: str) -> dict:
@@ -270,7 +363,55 @@ async def unlock_board(db: aiosqlite.Connection, board_id: int, organizer_token:
     _check_token(board, organizer_token)
     await db.execute("UPDATE boards SET locked = 0 WHERE id = ?", (board_id,))
     await db.commit()
-    return await get_board(db, board["slug"])
+    return await get_board(db, board["slug"], organizer_token)
+
+
+async def reveal_board(db: aiosqlite.Connection, board_id: int, organizer_token: str) -> dict:
+    """Manually reveal the board to everyone now (organizer only).
+
+    Sets the ``revealed`` flag, which the read-time gate honours immediately even
+    if a scheduled ``reveal_at`` is still in the future (reveal early). Idempotent.
+    """
+    board = await _board_row_by_id(db, board_id)
+    _check_token(board, organizer_token)
+    await db.execute("UPDATE boards SET revealed = 1 WHERE id = ?", (board_id,))
+    await db.commit()
+    return await get_board(db, board["slug"], organizer_token)
+
+
+async def update_board_settings(
+    db: aiosqlite.Connection,
+    board_id: int,
+    organizer_token: str,
+    occasion: str | None,
+    reveal_at: datetime | None,
+    brand_color: str | None,
+) -> dict:
+    """Set the occasion / scheduled-reveal / brand accent (organizer only).
+
+    Full-replace semantics (a field sent as ``None`` clears it). Setting a
+    ``reveal_at`` re-gates the board (revealed=0); clearing it re-opens it
+    (revealed=1) — the same rule ``create_board`` applies. Manual early reveal is
+    the separate ``reveal_board`` override.
+
+    FOOTGUN — this is a FULL REPLACE, not a partial patch. Every column it owns
+    (occasion, reveal_at, brand_color) is overwritten with the value passed;
+    OMITTING a field means passing ``None``, which WIPES the stored value. A
+    future caller that wants to change only one setting MUST first read the
+    current board and resend the others, or this silently erases them. (No
+    frontend calls this yet — the create form sets these at creation time.)
+    """
+    board = await _board_row_by_id(db, board_id)
+    _check_token(board, organizer_token)
+    reveal_stored = _reveal_at_to_storage(reveal_at)
+    revealed = 0 if reveal_stored else 1
+    await db.execute(
+        "UPDATE boards SET occasion = ?, reveal_at = ?, revealed = ?, brand_color = ? "
+        "WHERE id = ?",
+        (occasion, reveal_stored, revealed, brand_color, board_id),
+    )
+    await db.commit()
+    return await get_board(db, board["slug"], organizer_token)
 
 
 async def delete_board(db: aiosqlite.Connection, board_id: int, organizer_token: str) -> None:
@@ -323,7 +464,9 @@ async def restore_board(db: aiosqlite.Connection, board_id: int, organizer_token
         raise api_error(403, "organizer_token_required", "Organizer token required")
     await db.execute("UPDATE boards SET deleted_at = NULL WHERE id = ?", (board_id,))
     await db.commit()
-    return await get_board(db, (await _board_row_by_id(db, board_id))["slug"])
+    return await get_board(
+        db, (await _board_row_by_id(db, board_id))["slug"], organizer_token
+    )
 
 
 # --- Cards -----------------------------------------------------------------

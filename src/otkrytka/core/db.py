@@ -28,6 +28,25 @@ async def get_db():
         yield db
 
 
+async def _ensure_column(
+    db: aiosqlite.Connection, table: str, column: str, ddl: str
+) -> None:
+    """Additive, idempotent ``ALTER TABLE ADD COLUMN`` for an existing database.
+
+    ``CREATE TABLE IF NOT EXISTS`` never adds columns to a table that already
+    exists, so a board created before the occasion/reveal/brand columns landed
+    would be missing them. This checks ``PRAGMA table_info`` and adds the column
+    only when absent — a legacy row then picks up the column DEFAULT (revealed=1,
+    everything else NULL), keeping its behaviour byte-identical to today. Table
+    and column names are static literals here, so the f-string carries no user
+    input (no injection surface).
+    """
+    async with db.execute(f"PRAGMA table_info({table})") as cur:
+        existing = {row[1] for row in await cur.fetchall()}
+    if column not in existing:
+        await db.execute(f"ALTER TABLE {table} ADD COLUMN {ddl}")
+
+
 async def init_db():
     settings = get_settings()
     async with aiosqlite.connect(settings.db_path) as db:
@@ -44,10 +63,23 @@ async def init_db():
                 cover TEXT NOT NULL DEFAULT '',
                 organizer_token TEXT NOT NULL,
                 locked INTEGER NOT NULL DEFAULT 0,
+                occasion TEXT,
+                reveal_at TEXT,
+                revealed INTEGER NOT NULL DEFAULT 1,
+                brand_color TEXT,
                 created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 deleted_at TIMESTAMP
             )
         """)
+        # Backfill the occasion / scheduled-reveal / corp-brand columns on a
+        # database created before this feature. Each defaults so existing boards
+        # stay birthday-mode, always-revealed, un-branded — i.e. unchanged.
+        await _ensure_column(db, "boards", "occasion", "occasion TEXT")
+        await _ensure_column(db, "boards", "reveal_at", "reveal_at TEXT")
+        await _ensure_column(
+            db, "boards", "revealed", "revealed INTEGER NOT NULL DEFAULT 1"
+        )
+        await _ensure_column(db, "boards", "brand_color", "brand_color TEXT")
         await db.execute("""
             CREATE TABLE IF NOT EXISTS cards (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
