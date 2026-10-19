@@ -1019,6 +1019,7 @@ function renderLanding(root) {
         <p class="hero-reveal-1 font-display" style="color:var(--coral);font-weight:800;letter-spacing:0.06em;text-transform:uppercase;font-size:0.8rem;margin-bottom:14px">${esc(t('hero_eyebrow'))}</p>
         <h1 class="hero-reveal-1 font-display" style="font-weight:900;font-size:clamp(2.2rem,6vw,3.4rem);line-height:1.05;color:var(--ink);letter-spacing:-0.02em">${esc(t('hero_title'))}</h1>
         <p class="hero-reveal-2" style="margin-top:16px;font-size:clamp(1.05rem,2.5vw,1.25rem);color:var(--muted)">${esc(t('hero_sub'))}</p>
+        <button id="start-card" type="button" class="hero-reveal-2 cta-hero" style="margin-top:24px">${esc(t('create_btn'))}</button>
       </div>
 
       <!-- The outcome: a sample assembled card, shown before the form -->
@@ -1073,7 +1074,7 @@ function renderLanding(root) {
       <!-- Create form, after the emotional hook -->
       <div class="hero-reveal-4 cozy-card" style="max-width:520px;margin:36px auto 0;padding:24px">
         <p class="font-display" style="text-align:center;font-weight:800;font-size:1.15rem;color:var(--ink);margin-bottom:16px">${esc(t('form_lead'))}</p>
-        <label class="modal-label" style="display:block;margin-bottom:8px">${esc(t('create_title_label'))}</label>
+        <label for="create-title" class="modal-label" style="display:block;margin-bottom:8px">${esc(t('create_title_label'))}</label>
         <input id="create-title" class="kg-input" type="text" maxlength="120" placeholder="${esc(t('create_title_ph'))}">
         <label class="modal-label" style="display:block;margin:14px 0 8px">${esc(t('recipient_label'))}</label>
         <input id="create-recipient" class="kg-input" type="text" maxlength="80" placeholder="${esc(t('recipient_ph'))}">
@@ -1121,6 +1122,13 @@ function renderLanding(root) {
   });
 
   const titleInput = root.querySelector('#create-title');
+  root.querySelector('#start-card').addEventListener('click', () => {
+    titleInput.focus({ preventScroll: true });
+    titleInput.scrollIntoView({
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+      block: 'center',
+    });
+  });
   const doCreate = async () => {
     const title = titleInput.value.trim();
     if (!title) { titleInput.focus(); return; }
