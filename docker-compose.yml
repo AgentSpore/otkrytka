@@ -4,8 +4,19 @@ services:
     image: aspore-otkrytka:latest
     container_name: aspore-otkrytka
     restart: unless-stopped
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: 1.0
+    pids_limit: 128
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
     ports:
-      - "10028:8000"
+      - "127.0.0.1:10028:8000"
     environment:
       # Both the SQLite DB and the uploaded images live under /data so a redeploy
       # never wipes wishes or photos.
