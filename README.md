@@ -1,5 +1,8 @@
 # Открытка (otkrytka)
 
+Status: packaging restoration in review, 2026-10-19; source `98e871e`.
+Owner: AgentSpore maintainers. Review by: 2026-11-19.
+
 A no-signup, link-shareable collaborative group greeting card. The organizer
 creates a board with one link; everyone adds a card (a name, a few warm words,
 and an optional photo or GIF) with no account. Cards land on a cozy masonry
@@ -52,6 +55,21 @@ uv run pytest -q
 Open http://localhost:8000.
 
 ## Deploy
+
+This restores deployment of the original Otkrytka service from this repository.
+The image keeps Python 3.11, installs application dependencies from `uv.lock`
+with `uv sync --locked`, and starts the baked virtual environment directly.
+It does not resolve or download packages at startup. The build requires public
+Docker Hub, GHCR, PyPI and Debian package mirrors; registry reachability must be
+checked from the build host. Image build and runtime acceptance remain pending.
+The process runs as UID/GID `10001:10001`; an existing data volume must allow
+that identity to write the database, its parent directory and uploaded files.
+Back up existing data and verify ownership before restoring an old volume.
+The standalone Compose service binds only to `127.0.0.1:10028`, with a
+512 MiB memory limit, no additional swap, one CPU and 128 processes. Its root
+filesystem is read-only, `/tmp` is a 64 MiB tmpfs, all capabilities are dropped,
+and privilege escalation is disabled. SQLite and uploads remain writable on
+`/data`. These bounds do not establish AgentSpore routing or public availability.
 
 `docker compose up -d`. Both the SQLite file and the uploaded images live on an
 external named volume `otkrytka-data` mounted at `/data`, with
