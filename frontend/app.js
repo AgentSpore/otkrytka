@@ -459,8 +459,11 @@ function userIsBusy() {
 
 /** Apply a deferred refresh, animating new cards and preserving scroll. */
 async function applyObserverRefresh(slug) {
+  const socket = ws.socket;
   try {
     const board = await fetchBoard(slug);
+    if (!ws.active || ws.socket !== socket || state.slug !== slug) return;
+    if (userIsBusy()) { ws.pendingRefresh = true; return; }
     state.board = board;
     const scrollY = window.scrollY;
     const paint = state.embed ? paintEmbed : paintBoard;
@@ -517,10 +520,13 @@ function wsConnect(slug) {
   ws.socket = sock;
 
   sock.addEventListener('open', () => {
+    if (!ws.active || ws.socket !== sock) return;
     ws.retryDelay = 1000;
     setLivePip('connected');
+    onChanged();
   });
   sock.addEventListener('message', e => {
+    if (!ws.active || ws.socket !== sock) return;
     let msg;
     try { msg = JSON.parse(e.data); } catch (_) { return; }
     if (msg.type === 'hello') return;
@@ -530,11 +536,12 @@ function wsConnect(slug) {
     }
   });
   sock.addEventListener('close', () => {
-    if (!ws.active) return;
+    if (!ws.active || ws.socket !== sock) return;
     setLivePip('reconnecting');
     scheduleReconnect(slug);
   });
   sock.addEventListener('error', () => {
+    if (!ws.active || ws.socket !== sock) return;
     setLivePip('reconnecting');
   });
 }
@@ -555,8 +562,6 @@ function wsClose() {
   clearTimeout(ws.debounceTimer);
   ws.pendingRefresh = false;
   if (ws.socket) {
-    ws.socket.onclose = null;
-    ws.socket.onerror = null;
     try { ws.socket.close(); } catch (_) {}
     ws.socket = null;
   }
