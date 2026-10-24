@@ -146,5 +146,5 @@ The API needs no auth: anyone with a board's `slug` can read it and add a card
 
 Container builds fingerprint first-party JS/CSS and add integrity checks to copied HTML; source development stays buildless.
 Startup publishes verified immutable files into `/data/uploads/_frontend-assets` before readiness. This reserved public-code namespace survives image rollback; image uploads cannot target it. Conflicts or symlinks stop startup rather than overwrite files.
-HTML and legacy asset URLs require revalidation; hashed asset URLs are immutable. Earlier CDN/browser entries still need an explicit transition; new response headers do not purge them.
+New HTML and legacy asset URLs use `Cache-Control: no-cache`; hashed asset URLs are immutable. During the first transition, use the browser's normal Reload action to revalidate already fresh legacy HTML; navigating to the same URL can retain its cached copy. Purging the CDN cache does not clear browser caches, and new response headers do not evict earlier CDN/browser entries.
 Keep retained assets during rollback. They share the existing data volume and its backups; do not prune them while older documents may reference them. The bare `/app.js` compatibility URL remains available.
