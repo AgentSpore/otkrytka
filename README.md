@@ -54,6 +54,14 @@ uv run pytest -q
 
 Open http://localhost:8000.
 
+Run `uv run --no-project --python 3.12.10 --with playwright==1.64.1 python e2e/navigation.py`
+for the Chrome navigation regression on macOS, or append `--executable "$(command -v google-chrome)"`
+on Linux. It checks initial routing, paired browser events, repeated URLs, direct renders,
+home/reopening, back/forward history, organizer-token adoption and delivery routes.
+The test runs extracted production router code with synthetic renderer and WebSocket
+boundaries; it requires no server. The navigation CI runs this check and JavaScript syntax
+validation on relevant pull requests and pushes to `main`.
+
 ## Deploy
 
 This restores deployment of the original Otkrytka service from this repository.
