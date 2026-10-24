@@ -1,0 +1,39 @@
+{
+  "scope": "Reviewed synthetic local-browser artifacts; production/TLS/CDN acceptance excluded.",
+  "application_commit": "db26f367ec6ea252fcc50d54853407a76ce11145",
+  "harness": {
+    "asset_cache.py": "f8684e8caf8dd91f4a08a096848254066c11c6a2532b0ed3e6d4ab22504b9b27",
+    "asset_cache_stack.py": "1fd699d7dc8405b1ee32a645b19a16df38d24ac9442abc684c211057b80fb957",
+    "test_asset_cache_cleanup.py": "25270440c15dde879cc761773bbf4e5eb144179ea5c88dd67221d691e7ac0d21"
+  },
+  "files": {
+    "README.md": {
+      "bytes": 4300,
+      "sha256": "223f519ab9da8127e7462bb60772b2173b404d72cc2ba8a58d9136694ad72ac3"
+    },
+    "cancellation-proof.json": {
+      "bytes": 584,
+      "sha256": "fe06ab10e6577b19c50977d51640f8c117a41052067ccc0ab47f2ae981300eae"
+    },
+    "exact-proof.json": {
+      "bytes": 2339,
+      "sha256": "579583853d8f0b16071b2d98ca7ac8e3173b5a0d9328fece65f8a317a657fcaa"
+    },
+    "guest-390.png": {
+      "bytes": 75294,
+      "sha256": "35fa22753bbc634bd4d7c666f9d7510c628dfcbf17518110486bb4651c3c0670"
+    },
+    "guest-flow.webm": {
+      "bytes": 415479,
+      "sha256": "321f5f0a9b22c053a6f17923491e0a2cf19b13731c23d6a8d326dfb356acfdc8"
+    },
+    "historical-proof.json": {
+      "bytes": 2606,
+      "sha256": "1f27995830705ad39f83fe72ace35fc14fe4212e8e5b27eda5e82b12a5b24159"
+    },
+    "organizer-1440.png": {
+      "bytes": 126635,
+      "sha256": "dd09e4f810c9c28d2207d3d34abb0b60d5bd7651b2d32626b735edda2861fddf"
+    }
+  }
+}

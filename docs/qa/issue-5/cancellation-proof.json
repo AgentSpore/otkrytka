@@ -1,0 +1,21 @@
+{
+  "passed": true,
+  "kind": "actual_live_SIGTERM_after_readiness",
+  "readiness_http_200": true,
+  "exact_owned_python_pid_signalled": true,
+  "child_exit_code": 1,
+  "expected_interrupted_exit_code": 1,
+  "safe_failure": {
+    "passed": false,
+    "phase": "browser",
+    "error_class": "RuntimeError"
+  },
+  "forced_python_kill": false,
+  "child_collected": true,
+  "cleanup": {
+    "failures": [],
+    "unrelated_containers_preserved": true,
+    "owned_resources_absent": true
+  },
+  "harness_browser_sha256": "f8684e8caf8dd91f4a08a096848254066c11c6a2532b0ed3e6d4ab22504b9b27"
+}

@@ -1,0 +1,70 @@
+{
+  "tls_verified": false,
+  "transport": "owned socat loopback relay",
+  "browser_cache_disabled": false,
+  "legacy_cache": {
+    "/app.js": {
+      "sha256": "9693f06cf13b99cd817f234df0213193721f259b6ef51f39cbf52dbd717f9976",
+      "bytes": 105633,
+      "cache_status": "HIT"
+    },
+    "/styles.css": {
+      "sha256": "d957439a63391c09eff0b9b4d74a6aa5f7e1dde63a8fa4176ff8b3634dac8556",
+      "bytes": 27399,
+      "cache_status": "HIT"
+    }
+  },
+  "browser_cold_assets_after_rollback": {
+    "/uploads/_frontend-assets/d957439a63391c09eff0b9b4d74a6aa5f7e1dde63a8fa4176ff8b3634dac8556.css": {
+      "sha256": "d957439a63391c09eff0b9b4d74a6aa5f7e1dde63a8fa4176ff8b3634dac8556",
+      "mime": "text/css; charset=utf-8",
+      "transfer_size": 27699
+    },
+    "/uploads/_frontend-assets/0845b3eb46d49c99caf5ad98ee23281689c042f32adfc8e8b682376589883c07.js": {
+      "sha256": "0845b3eb46d49c99caf5ad98ee23281689c042f32adfc8e8b682376589883c07",
+      "mime": "application/javascript",
+      "transfer_size": 106347
+    }
+  },
+  "delayed_rollback": {
+    "/uploads/_frontend-assets/d957439a63391c09eff0b9b4d74a6aa5f7e1dde63a8fa4176ff8b3634dac8556.css": {
+      "sha256": "d957439a63391c09eff0b9b4d74a6aa5f7e1dde63a8fa4176ff8b3634dac8556",
+      "bytes": 27399,
+      "integrity": "sha256-2VdDmmM5HAnv8Lm010pqpffh3eY6j6QXb/izY02shVY="
+    },
+    "/uploads/_frontend-assets/0845b3eb46d49c99caf5ad98ee23281689c042f32adfc8e8b682376589883c07.js": {
+      "sha256": "0845b3eb46d49c99caf5ad98ee23281689c042f32adfc8e8b682376589883c07",
+      "bytes": 106047,
+      "integrity": "sha256-CEWz60bUnJnK9a2Y7iMoFonAQvMq38jotoI3ZYmIPAc="
+    }
+  },
+  "html_entrypoints": [
+    "/",
+    "/index.html",
+    "/asset-fixture-unknown",
+    "/c/{synthetic}",
+    "/embed/{synthetic}"
+  ],
+  "passed": true,
+  "browser_errors": [],
+  "images": {
+    "old": "sha256:2367fdcff0f370e5e44f36ca87de52cbadf9a034918c77466b0579aa2d2181d5",
+    "new": "sha256:8350b1a1bf1dac5e9af279b78859665804e20f0da8ac024fc46cc24d3a8a7226"
+  },
+  "cleanup": {
+    "failures": [],
+    "unrelated_containers_preserved": true,
+    "owned_resources_absent": true
+  },
+  "source_images_are_local_fixtures": true,
+  "candidate_application_commit": "db26f367ec6ea252fcc50d54853407a76ce11145",
+  "harness_browser_sha256": "f8684e8caf8dd91f4a08a096848254066c11c6a2532b0ed3e6d4ab22504b9b27",
+  "active_new_legacy": {
+    "status": 200,
+    "cache_status": "HIT",
+    "sha256": "9693f06cf13b99cd817f234df0213193721f259b6ef51f39cbf52dbd717f9976",
+    "bytes": 105633,
+    "new_generated_js_reference_present": true,
+    "health_before_after_active": "new"
+  }
+}
