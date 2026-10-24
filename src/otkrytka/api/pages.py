@@ -13,6 +13,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 
 from ..core.config import get_settings
 from ..core.db import get_db
+from ..core.frontend_assets import HTML_CACHE_CONTROL
 from ..services import og_service
 
 router = APIRouter()
@@ -21,8 +22,8 @@ router = APIRouter()
 # Deterministic per slug+content, so crawlers / CDN / Caddy can dedupe the render.
 _OG_CACHE_CONTROL = "public, max-age=3600"
 
-# Shorter TTL for the embed HTML + oEmbed JSON: many consumer crawlers re-fetch
-# these, but the card content updates live, so a 5-minute cache balances both.
+# Embed HTML now requires revalidation to pick up release-specific asset references.
+# The five-minute oEmbed JSON cache still balances crawler refetches and live content.
 _EMBED_CACHE_CONTROL = "public, max-age=300"
 
 
@@ -56,7 +57,7 @@ async def card_page(
         request.query_params.get("lang"), request.headers.get("accept-language")
     )
     body = await og_service.render_card_page(db, slug, lang, _base_url(request))
-    return HTMLResponse(body)
+    return HTMLResponse(body, headers={"Cache-Control": HTML_CACHE_CONTROL})
 
 
 @router.get("/embed/{slug}", response_class=HTMLResponse)
@@ -74,7 +75,7 @@ async def embed_page(
         request.query_params.get("lang"), request.headers.get("accept-language")
     )
     body = await og_service.render_embed_page(db, slug, lang, _base_url(request))
-    return HTMLResponse(body, headers={"Cache-Control": _EMBED_CACHE_CONTROL})
+    return HTMLResponse(body, headers={"Cache-Control": HTML_CACHE_CONTROL})
 
 
 @router.get("/oembed")

@@ -48,7 +48,7 @@ async def test_embed_page_signals_read_only_mode(client):
 async def test_embed_page_has_cache_control(client):
     slug = (await _make_board(client))["slug"]
     res = await client.get(f"/embed/{slug}")
-    assert res.headers["cache-control"] == "public, max-age=300"
+    assert res.headers["cache-control"] == "no-cache"
 
 
 @pytest.mark.asyncio

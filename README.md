@@ -141,3 +141,10 @@ The API needs no auth: anyone with a board's `slug` can read it and add a card
 - **Video contributions** — storage-heavy; deferred.
 - **Payment / collected gift money (ЮKassa)** — deferred; the service is free
   with a generous per-board card cap.
+
+## Frontend release assets
+
+Container builds fingerprint first-party JS/CSS and add integrity checks to copied HTML; source development stays buildless.
+Startup publishes verified immutable files into `/data/uploads/_frontend-assets` before readiness. This reserved public-code namespace survives image rollback; image uploads cannot target it. Conflicts or symlinks stop startup rather than overwrite files.
+HTML and legacy asset URLs require revalidation; hashed asset URLs are immutable. Earlier CDN/browser entries still need an explicit transition; new response headers do not purge them.
+Keep retained assets during rollback. They share the existing data volume and its backups; do not prune them while older documents may reference them. The bare `/app.js` compatibility URL remains available.
