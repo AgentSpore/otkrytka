@@ -943,6 +943,7 @@ function resizeImage(file, maxDim = 1600) {
 }
 
 // ─── Routing ─────────────────────────────────────────────────────────────────
+let lastRenderedLocation;
 /** Parse the route. The hash forms — `#/slug`, `#/slug/k/<token>`,
  *  `#/slug/deliver` — take precedence (organizer + deliver deep links keep
  *  working). Otherwise the real guest path `/c/{slug}` renders the board so a
@@ -976,6 +977,7 @@ function goHome() {
 }
 
 async function render() {
+  lastRenderedLocation = location.href;
   document.documentElement.lang = state.lang;
   document.title = t('doc_title'); // keep the browser tab title in sync with the UI language
   const route = parseRoute();
@@ -2123,6 +2125,7 @@ function init() {
   document.documentElement.lang = state.lang;
   render();
   const rerender = () => {
+    if (location.href === lastRenderedLocation) return;
     wsClose();
     state.board = null;
     render();
