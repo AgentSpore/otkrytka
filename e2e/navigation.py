@@ -122,12 +122,15 @@ async def run_real_paths(page):
     )
 
 
-async def run(source):
-    """Run extracted production functions with synthetic in-memory boundaries."""
+async def run(source, executable=CHROME):
+    """Run extracted production functions with synthetic in-memory boundaries.
+
+    Use the selected Chrome executable, defaulting to the macOS installation.
+    """
     router = extract_router(source)
     async with async_playwright() as playwright:
         browser = await playwright.chromium.launch(
-            executable_path=CHROME, headless=True
+            executable_path=executable, headless=True
         )
         try:
             for path, scenario in (
@@ -172,5 +175,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--source", type=Path, default=Path(__file__).parents[1] / "frontend/app.js"
     )
+    parser.add_argument(
+        "--executable",
+        default=CHROME,
+        help="Chrome executable path (default: macOS Chrome)",
+    )
     args = parser.parse_args()
-    asyncio.run(asyncio.wait_for(run(args.source.read_text()), timeout=40))
+    asyncio.run(
+        asyncio.wait_for(run(args.source.read_text(), args.executable), timeout=40)
+    )

@@ -1,0 +1,39 @@
+name: Navigation regression
+
+on:
+  pull_request:
+    paths:
+      - frontend/app.js
+      - e2e/navigation.py
+      - .github/workflows/navigation.yml
+  push:
+    branches: [main]
+    paths:
+      - frontend/app.js
+      - e2e/navigation.py
+      - .github/workflows/navigation.yml
+
+permissions:
+  contents: read
+
+jobs:
+  navigation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.11.20"
+          enable-cache: false
+      - name: Check JavaScript syntax
+        run: node --check frontend/app.js
+      - name: Check navigation in Chrome
+        shell: bash
+        run: |
+          set -euo pipefail
+          chrome_executable="$(command -v google-chrome)"
+          uv run --no-project --python 3.12.10 --with playwright==1.64.1 \
+            python e2e/navigation.py --executable "$chrome_executable"
