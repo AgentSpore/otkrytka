@@ -11,3 +11,7 @@ uploads/
 # dev scaffolding (build specs), not product code
 SPEC_*.md
 SPEC.md
+
+# Generated QA captures; keep test and harness sources tracked.
+/docs/qa/issue-5/
+*.webm
