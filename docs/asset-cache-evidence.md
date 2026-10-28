@@ -11,10 +11,12 @@ it does not hash itself. The workflow independently pins all eight hashes.
 
 Open the PR's Application regression check, follow its workflow run, and find
 Artifacts. A successful upload provides the actual artifact ID and download URL.
-No artifact ID or URL has been verified yet. Download requires GitHub sign-in
-and repository read access; access is not anonymous or permanent. Repository or
-organization retention limits may shorten availability. The release maintainer must download the
-real artifact, verify its hashes, and add the verified run/artifact link to PR #6.
+The [verified export](https://github.com/AgentSpore/otkrytka/actions/runs/40740353147/artifacts/12839246542)
+was downloaded and matched all eight original files byte-for-byte on 28 October 2026.
+Download requires GitHub sign-in and repository read access; access is not anonymous
+or permanent. This artifact expires on 26 January 2027. Repository or organization
+retention limits may shorten availability. Later exports must be downloaded and
+verified before replacing the evidence link in PR #6.
 An export/upload failure fails the job. Export follows the application gate,
 so a failed gate does not produce a new artifact.
 
