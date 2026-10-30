@@ -1,0 +1,83 @@
+name: Application regression
+
+on:
+  pull_request:
+    paths:
+      - src/**
+      - tests/**
+      - frontend/**
+      - Dockerfile
+      - pyproject.toml
+      - uv.lock
+      - .github/workflows/application.yml
+  push:
+    branches: [main]
+    paths:
+      - src/**
+      - tests/**
+      - frontend/**
+      - Dockerfile
+      - pyproject.toml
+      - uv.lock
+      - .github/workflows/application.yml
+
+permissions:
+  contents: read
+
+jobs:
+  application:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.11.20"
+          enable-cache: false
+      - name: Run application tests
+        run: uv run --python 3.11 --locked --extra dev pytest
+      - name: Export verified historical issue 5 evidence
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import os
+          import shutil
+          import subprocess  # noqa: S404 - read pinned Git blobs with a fixed argument list and no shell.
+          from pathlib import Path
+
+          revision = "8261625e1106982ec869fbe549da4241097f9782"
+          expected = {
+              "README.md": "223f519ab9da8127e7462bb60772b2173b404d72cc2ba8a58d9136694ad72ac3",
+              "cancellation-proof.json": "fe06ab10e6577b19c50977d51640f8c117a41052067ccc0ab47f2ae981300eae",
+              "exact-proof.json": "579583853d8f0b16071b2d98ca7ac8e3173b5a0d9328fece65f8a317a657fcaa",
+              "guest-390.png": "35fa22753bbc634bd4d7c666f9d7510c628dfcbf17518110486bb4651c3c0670",
+              "guest-flow.webm": "321f5f0a9b22c053a6f17923491e0a2cf19b13731c23d6a8d326dfb356acfdc8",
+              "historical-proof.json": "1f27995830705ad39f83fe72ace35fc14fe4212e8e5b27eda5e82b12a5b24159",
+              "manifest.json": "e39a9c1ec754328f2c0cf4c171303274fcd87a5189594ae9a94f626712458b2d",
+              "organizer-1440.png": "dd09e4f810c9c28d2207d3d34abb0b60d5bd7651b2d32626b735edda2861fddf",
+          }
+          git_executable = shutil.which("git")
+          if git_executable is None:
+              raise SystemExit(127)
+          staging = Path(os.environ["RUNNER_TEMP"]) / "issue-5-historical-evidence"
+          staging.mkdir(exist_ok=False)
+          for name, digest in expected.items():
+              data = subprocess.check_output(  # noqa: S603 - resolved Git executable, immutable revision and allowlisted names; no user input.
+                  [git_executable, "show", f"{revision}:docs/qa/issue-5/{name}"]
+              )
+              if hashlib.sha256(data).hexdigest() != digest:
+                  message = f"Historical evidence SHA256 mismatch: {name}"
+                  raise SystemExit(message)
+              (staging / name).write_bytes(data)
+          PY
+      - name: Upload historical issue 5 evidence
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: issue-5-historical-db26f367-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/issue-5-historical-evidence/
+          if-no-files-found: error
+          retention-days: 90
+          overwrite: false

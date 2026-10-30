@@ -5,6 +5,8 @@ ENV UV_PYTHON_DOWNLOADS=never UV_NO_CACHE=1
 COPY pyproject.toml uv.lock README.md ./
 COPY src ./src
 RUN uv sync --locked --no-dev --no-editable
+COPY frontend /frontend-source
+RUN /app/.venv/bin/python -m otkrytka.core.frontend_assets /frontend-source /frontend-built
 
 FROM python:3.11-slim-bookworm@sha256:0a310eeecf4e1f5a0743f9a6520c90c88d089c903ca5fd283f501e3a805f5f89
 WORKDIR /app
@@ -17,7 +19,7 @@ RUN apt-get update \
         libjpeg62-turbo zlib1g libwebp7 fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /app/.venv /app/.venv
-COPY frontend ./frontend
+COPY --from=builder /frontend-built ./frontend
 # Uploads + the sqlite db live under /data (a persistent volume in compose).
 RUN groupadd --system --gid 10001 appuser \
     && useradd --system --uid 10001 --gid appuser --no-create-home appuser \

@@ -1,6 +1,9 @@
+import asyncio
 import logging
 import os
+import re
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,6 +13,12 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from .api import boards, pages
 from .core.config import get_settings
 from .core.db import init_db
+from .core.frontend_assets import (
+    ASSET_NAMES,
+    HTML_CACHE_CONTROL,
+    IMMUTABLE_CACHE_CONTROL,
+    publish_frontend_assets,
+)
 from .core.limits import BodySizeLimitMiddleware
 
 logger = logging.getLogger(__name__)
@@ -54,11 +63,29 @@ class SPAStaticFiles(StaticFiles):
 
     async def get_response(self, path, scope):
         try:
-            return await super().get_response(path, scope)
+            response = await super().get_response(path, scope)
         except StarletteHTTPException as exc:
             if exc.status_code == 404 and _is_spa_route(path):
-                return await super().get_response("index.html", scope)
-            raise
+                response = await super().get_response("index.html", scope)
+            else:
+                raise
+        if path in ASSET_NAMES or response.headers.get("content-type", "").startswith(
+            "text/html"
+        ):
+            response.headers["Cache-Control"] = HTML_CACHE_CONTROL
+        return response
+
+
+class UploadFiles(StaticFiles):
+    """Cache only retained content-addressed code as immutable."""
+
+    async def get_response(self, path, scope):
+        """Serve retained public code with immutable caching."""
+        response = await super().get_response(path, scope)
+        if re.fullmatch(r"_frontend-assets/[0-9a-f]{64}\.(js|css)", path):
+            response.headers["Cache-Control"] = IMMUTABLE_CACHE_CONTROL
+        return response
+
 
 # Deliberately scoped deferrals for this first release (explicit, not oversights):
 #   - Rate limiting is enforced at the Caddy edge for otkrytka.agentspore.com
@@ -76,6 +103,13 @@ class SPAStaticFiles(StaticFiles):
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    settings = get_settings()
+    await asyncio.to_thread(
+        publish_frontend_assets,
+        Path(settings.frontend_dir),
+        Path(settings.upload_dir),
+        settings.env.strip().lower() in {"dev", "local", "test"},
+    )
     await init_db()
     yield
 
@@ -114,11 +148,14 @@ app.include_router(pages.router)
 
 # Serve uploaded images read-only from the upload dir (created if missing so the
 # mount never fails on a fresh volume).
+# The reserved _frontend-assets child also retains public code across rollback.
 settings = get_settings()
 os.makedirs(settings.upload_dir, exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=settings.upload_dir), name="uploads")
+app.mount("/uploads", UploadFiles(directory=settings.upload_dir), name="uploads")
 
 # Mount the buildless frontend LAST (after all routers, /health and /uploads) so
 # it does not shadow the API. html=True serves index.html at '/'; SPAStaticFiles
 # adds the catch-all that serves index.html for unknown extensionless routes.
-app.mount("/", SPAStaticFiles(directory=settings.frontend_dir, html=True), name="frontend")
+app.mount(
+    "/", SPAStaticFiles(directory=settings.frontend_dir, html=True), name="frontend"
+)
