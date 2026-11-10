@@ -10,6 +10,7 @@ and organizer-gated on the settings endpoint.
 import os
 import tempfile
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 import aiosqlite
 import pytest
@@ -178,6 +179,59 @@ async def test_future_reveal_gates_wishes_from_guest(client):
     ).json()
     assert org["revealed"] is False
     assert len(org["cards"]) == 1
+
+
+@pytest.mark.asyncio
+async def test_future_reveal_guest_api_hides_cards_keeps_count(client):
+    slug, token = await _api_board(client, reveal_at=_future())
+    for text in ("Первое", "Второе"):
+        await client.post(
+            f"/api/v1/boards/{slug}/cards", json={"author_name": "Гость", "text": text}
+        )
+    guest = (await client.get(f"/api/v1/boards/{slug}")).json()
+    assert guest["cards"] == []
+    assert guest["card_count"] == 2
+    org = (
+        await client.get(f"/api/v1/boards/{slug}", headers={"X-Organizer-Token": token})
+    ).json()
+    assert len(org["cards"]) == 2
+    assert org["revealed"] is False
+
+
+# --- Organizer notice vs guest gate copy (frontend/app.js) ---------------------
+
+def _app_js() -> str:
+    return (Path(get_settings().frontend_dir) / "app.js").read_text(encoding="utf-8")
+
+
+def _lang_block(js: str, lang: str) -> str:
+    start = js.index(f"\n  {lang}: {{")
+    return js[start : js.index("\n  },", start)]
+
+
+def test_organizer_notice_translated_and_distinct_from_guest_gate():
+    js = _app_js()
+    en, ru = _lang_block(js, "en"), _lang_block(js, "ru")
+    assert 'gated_organizer: "Guests will see the wishes after {time}.' in en
+    assert "you can already see them" in en
+    assert 'gated_organizer: "Гости увидят пожелания после {time}.' in ru
+    assert "Вам как организатору они уже доступны." in ru
+    # Guest gate copy is unchanged.
+    assert 'gated_title: "Wishes are hidden for now"' in en
+    assert 'gated_title: "Пожелания пока скрыты"' in ru
+
+
+def test_board_banner_uses_organizer_key_only_for_organizer():
+    js = _app_js()
+    banner = js[js.index("${!b.revealed ? `") :][:600]
+    assert "isOrganizer && b.reveal_at" in banner
+    assert "t('gated_organizer', { time: fmtRevealAt(b.reveal_at) })" in banner
+    # Guests (and the no-time fallback) still get the original gate title.
+    assert "t('gated_title')" in banner
+    # Guest placeholder keeps gated_title and never the organizer-only key.
+    guest_gate = js[js.index("gatedForGuest\n"):][:900]
+    assert "t('gated_title')" in guest_gate
+    assert "gated_organizer" not in guest_gate
 
 
 @pytest.mark.asyncio

@@ -134,6 +134,7 @@ const STR = {
     reveal_hint: "Until then guests add wishes but cannot see them. You can reveal earlier.",
     reveal_btn: "Reveal wishes now",
     gated_title: "Wishes are hidden for now",
+    gated_organizer: "Guests will see the wishes after {time}. As the organizer, you can already see them.",
     gated_hint: "Add your wish — everything opens at the chosen moment.",
     gated_hidden: "hidden until reveal",
     brand_color_label: "Brand color (optional)",
@@ -327,6 +328,7 @@ const STR = {
     reveal_hint: "До этого момента гости добавляют пожелания, но не видят их. Вы можете открыть раньше.",
     reveal_btn: "Открыть пожелания сейчас",
     gated_title: "Пожелания пока скрыты",
+    gated_organizer: "Гости увидят пожелания после {time}. Вам как организатору они уже доступны.",
     gated_hint: "Добавьте своё пожелание — все откроются в назначенный момент.",
     gated_hidden: "скрыто до открытия",
     brand_color_label: "Цвет бренда (по желанию)",
@@ -1424,7 +1426,9 @@ function paintBoard(root, slug, opts = {}) {
       ${!b.revealed ? `
       <div class="locked-banner" style="margin-top:20px">
         <span style="font-size:1.4rem">🔒</span>
-        <p class="font-display" style="font-weight:800;color:var(--ink)">${esc(t('gated_title'))}${b.reveal_at ? ` · ${esc(fmtRevealAt(b.reveal_at))}` : ''}</p>
+        <p class="font-display" style="font-weight:800;color:var(--ink)">${isOrganizer && b.reveal_at
+          ? esc(t('gated_organizer', { time: fmtRevealAt(b.reveal_at) }))
+          : `${esc(t('gated_title'))}${b.reveal_at ? ` · ${esc(fmtRevealAt(b.reveal_at))}` : ''}`}</p>
       </div>` : ''}
 
       ${locked ? `
